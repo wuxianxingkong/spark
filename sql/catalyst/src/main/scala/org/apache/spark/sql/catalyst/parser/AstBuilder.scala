@@ -377,7 +377,14 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
         }
 
         // Window
-        withDistinct.optionalMap(windows)(withWindows)
+        val withWindow = withDistinct.optionalMap(windows)(withWindows)
+
+        // SelectInto
+        if(intoClause != null) {
+          withWindow.optionalMap(intoClause)(withSelectInto)
+        } else {
+          withWindow
+        }
     }
   }
 
@@ -392,6 +399,15 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
       recordReader: Token,
       schemaLess: Boolean): ScriptInputOutputSchema = {
     throw new ParseException("Script Transform is not supported", ctx)
+  }
+
+  /**
+    * Change to Hive CTAS statement.
+    */
+  protected def withSelectInto(
+                                ctx: IntoClauseContext,
+                                query: LogicalPlan): LogicalPlan = withOrigin(ctx) {
+    throw new ParseException("Script Select Into is not supported", ctx)
   }
 
   /**

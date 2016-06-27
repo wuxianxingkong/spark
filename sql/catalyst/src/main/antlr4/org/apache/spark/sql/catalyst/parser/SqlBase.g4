@@ -330,7 +330,7 @@ querySpecification
        (RECORDREADER recordReader=STRING)?
        fromClause?
        (WHERE where=booleanExpression)?)
-    | ((kind=SELECT setQuantifier? namedExpressionSeq fromClause?
+    | ((kind=SELECT setQuantifier? namedExpressionSeq intoClause? fromClause?
        | fromClause (kind=SELECT setQuantifier? namedExpressionSeq)?)
        lateralView*
        (WHERE where=booleanExpression)?
@@ -339,6 +339,9 @@ querySpecification
        windows?)
     ;
 
+intoClause
+    : INTO tableIdentifier
+    ;
 fromClause
     : FROM relation (',' relation)* lateralView*
     ;
