@@ -405,8 +405,8 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
     * Change to Hive CTAS statement.
     */
   protected def withSelectInto(
-                                ctx: IntoClauseContext,
-                                query: LogicalPlan): LogicalPlan = withOrigin(ctx) {
+      ctx: IntoClauseContext,
+      query: LogicalPlan): LogicalPlan = withOrigin(ctx) {
     throw new ParseException("Script Select Into is not supported", ctx)
   }
 

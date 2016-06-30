@@ -1359,23 +1359,23 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
   }
 
   /**
-    * Reuse CTAS, convert select into to CTAS,
-    * returning [[CreateHiveTableAsSelectLogicalPlan]].
-    * The SELECT INTO statement selects data from one table
-    * and inserts it into a new table.It is commonly used to
-    * create a backup copy for table or selected records.
-    *
-    * Expected format:
-    * {{{
-    *   SELECT column_name(s)
-    *   INTO new_table
-    *   FROM old_table
-    *   ...
-    * }}}
-    */
+   * Reuse CTAS, convert select into to CTAS,
+   * returning [[CreateHiveTableAsSelectLogicalPlan]].
+   * The SELECT INTO statement selects data from one table
+   * and inserts it into a new table.It is commonly used to
+   * create a backup copy for table or selected records.
+   *
+   * Expected format:
+   * {{{
+   *   SELECT column_name(s)
+   *   INTO new_table
+   *   FROM old_table
+   *   ...
+   * }}}
+   */
   override protected def withSelectInto(
-                                ctx: IntoClauseContext,
-                                query: LogicalPlan): LogicalPlan = withOrigin(ctx) {
+      ctx: IntoClauseContext,
+      query: LogicalPlan): LogicalPlan = withOrigin(ctx) {
     // Storage format
     val defaultStorage: CatalogStorageFormat = {
       val defaultStorageType = conf.getConfString("hive.default.fileformat", "textfile")
