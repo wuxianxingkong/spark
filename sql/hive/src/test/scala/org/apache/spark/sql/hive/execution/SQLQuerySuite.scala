@@ -1684,4 +1684,89 @@ class SQLQuerySuite extends QueryTest with SQLTestUtils with TestHiveSingleton {
       )
     }
   }
+  test("test select into(check relation)") {
+    val originalConf = sessionState.conf.convertCTAS
+
+    setConf(SQLConf.CONVERT_CTAS, true)
+
+    val defaultDataSource = sessionState.conf.defaultDataSourceName
+    try {
+      sql("DROP TABLE IF EXISTS ctas1")
+      sql("SELECT key, value INTO ctas1 FROM src ORDER BY key, value")
+      val message = intercept[AnalysisException] {
+        sql("SELECT key, value INTO ctas1 FROM src ORDER BY key, value")
+      }.getMessage
+      assert(message.contains("already exists"))
+      checkRelation("ctas1", true, defaultDataSource)
+      sql("DROP TABLE ctas1")
+
+      // Specifying database name for query can be converted to data source write path
+      // is not allowed right now.
+      sql("SELECT key, value INTO default.ctas1 FROM src ORDER BY key, value")
+      checkRelation("ctas1", true, defaultDataSource)
+      sql("DROP TABLE ctas1")
+
+    } finally {
+      setConf(SQLConf.CONVERT_CTAS, originalConf)
+      sql("DROP TABLE IF EXISTS ctas1")
+    }
+  }
+  test("test select into(check answer)") {
+    sql("DROP TABLE IF EXISTS ctas1")
+    sql("DROP TABLE IF EXISTS ctas2")
+    sql("DROP TABLE IF EXISTS test_ctas_123")
+
+    sql("SELECT key k, value INTO ctas1 FROM src ORDER BY k,value").collect()
+    checkAnswer(
+      sql("SELECT k, value FROM ctas1 ORDER BY k, value"),
+      sql("SELECT key, value FROM src ORDER BY key, value").collect().toSeq)
+
+    sql("SELECT 1 AS key,value INTO ctas2 FROM src LIMIT 1").collect()
+    intercept[AnalysisException] {
+      sql("SELECT key, value INTO ctas2 FROM src ORDER BY key, value").collect()
+    }
+    checkAnswer(
+      sql("SELECT key, value FROM ctas2 ORDER BY key, value"),
+      sql("SELECT key, value FROM ctas2 LIMIT 1").collect().toSeq)
+
+    sql("CREATE TABLE test_ctas_123 AS SELECT key, value FROM src")
+    checkAnswer(
+      sql("SELECT key, value FROM test_ctas_123 ORDER BY key"),
+      sql("SELECT key, value FROM src ORDER BY key").collect().toSeq)
+
+    sql("DROP TABLE IF EXISTS ctas1")
+    sql("DROP TABLE IF EXISTS ctas2")
+    sql("DROP TABLE IF EXISTS test_ctas_123")
+  }
+  test("test select into(specifying the column list)") {
+    sql("DROP TABLE IF EXISTS mytable1")
+    Seq((1, "111111"), (2, "222222")).toDF("key", "value").createOrReplaceTempView("mytable1")
+
+
+    sql("SELECT key as a,value as b INTO gen__tmp FROM mytable1")
+    checkAnswer(
+      sql("SELECT a, b from gen__tmp"),
+      sql("select key, value from mytable1").collect())
+    sql("DROP TABLE IF EXISTS mytable1")
+  }
+  test("test select into(double nested data)") {
+    sql("DROP TABLE IF EXISTS nested")
+    sql("DROP TABLE IF EXISTS test_ctas_1234")
+    sparkContext.parallelize(Nested1(Nested2(Nested3(1))) :: Nil)
+      .toDF().createOrReplaceTempView("nested")
+    checkAnswer(
+      sql("SELECT f1.f2.f3 FROM nested"),
+      Row(1))
+
+    sql("SELECT * INTO test_ctas_1234 FROM nested")
+    checkAnswer(
+      sql("SELECT * FROM test_ctas_1234"),
+      sql("SELECT * FROM nested").collect().toSeq)
+
+    intercept[AnalysisException] {
+      sql("SELECT * INTO test_ctas_1234 FROM notexists").collect()
+    }
+    sql("DROP TABLE IF EXISTS nested")
+    sql("DROP TABLE IF EXISTS test_ctas_1234")
+  }
 }

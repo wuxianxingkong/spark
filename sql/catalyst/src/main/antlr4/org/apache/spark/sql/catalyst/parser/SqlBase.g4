@@ -283,7 +283,7 @@ resource
     ;
 
 queryNoWith
-    : insertInto? queryTerm queryOrganization                                              #singleInsertQuery
+    : insertInto? queryTerm  queryOrganization                                             #singleInsertQuery
     | fromClause multiInsertQueryBody+                                                     #multiInsertQuery
     ;
 
@@ -329,14 +329,16 @@ querySpecification
        outRowFormat=rowFormat?
        (RECORDREADER recordReader=STRING)?
        fromClause?
-       (WHERE where=booleanExpression)?)
-    | ((kind=SELECT setQuantifier? namedExpressionSeq intoClause? fromClause?
-       | fromClause (kind=SELECT setQuantifier? namedExpressionSeq)?)
+       (WHERE where=booleanExpression)?
+       )
+    | ((kind=SELECT setQuantifier? namedExpressionSeq (intoClause? fromClause)?
+       | fromClause (kind=SELECT setQuantifier?  namedExpressionSeq)?)
        lateralView*
        (WHERE where=booleanExpression)?
        aggregation?
        (HAVING having=booleanExpression)?
-       windows?)
+       windows?
+       )
     ;
 
 intoClause

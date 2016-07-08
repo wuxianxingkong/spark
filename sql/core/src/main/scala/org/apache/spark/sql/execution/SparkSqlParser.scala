@@ -1399,7 +1399,20 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
       storage = defaultStorage,
       schema = Nil
     )
+
     // Table shouldn't exist
-    CreateHiveTableAsSelectLogicalPlan(tableDesc, query, false)
+    if (conf.convertCTAS) {
+      CreateTableUsingAsSelect(
+        tableIdent = tableDesc.identifier,
+        provider = conf.defaultDataSourceName,
+        partitionColumns = Array(),
+        bucketSpec = None,
+        mode = SaveMode.ErrorIfExists,
+        options = Map.empty[String, String],
+        query
+      )
+    } else {
+      CreateHiveTableAsSelectLogicalPlan(tableDesc, query, false)
+    }
   }
 }

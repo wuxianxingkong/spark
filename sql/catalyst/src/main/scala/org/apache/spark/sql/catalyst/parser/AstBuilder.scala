@@ -29,7 +29,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.{FunctionIdentifier, InternalRow, TableIdentifier}
 import org.apache.spark.sql.catalyst.analysis._
 import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.catalyst.parser.SqlBaseParser._
+import org.apache.spark.sql.catalyst.parser.SqlBaseParser.{QueryTermDefaultContext, _}
 import org.apache.spark.sql.catalyst.plans._
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.types._
@@ -159,9 +159,23 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
       // Add organization statements.
       optionalMap(ctx.queryOrganization)(withQueryResultClauses).
       // Add insert.
-      optionalMap(ctx.insertInto())(withInsertInto)
-  }
+      optionalMap(ctx.insertInto())(withInsertInto).
+      optionalMap(judgeInto(ctx.queryTerm))(withSelectInto)
 
+  }
+  private def judgeInto(
+      ctx: SqlBaseParser.QueryTermContext): IntoClauseContext = {
+    ctx match {
+      case queryTermDefault : QueryTermDefaultContext =>
+        queryTermDefault.queryPrimary match {
+          case queryPrimaryDefault : QueryPrimaryDefaultContext =>
+            queryPrimaryDefault.querySpecification.intoClause
+          case _ => null
+        }
+      case _ => null
+    }
+
+  }
   /**
    * Add an INSERT INTO [TABLE]/INSERT OVERWRITE TABLE operation to the logical plan.
    */
@@ -379,12 +393,12 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
         // Window
         val withWindow = withDistinct.optionalMap(windows)(withWindows)
 
+        withWindow
+        // Organization
+        // val withOrganization = withWindow.optionalMap(queryOrganization)(withQueryResultClauses)
+
         // SelectInto
-        if(intoClause != null) {
-          withWindow.optionalMap(intoClause)(withSelectInto)
-        } else {
-          withWindow
-        }
+        // withOrganization.optionalMap(intoClause)(withSelectInto)
     }
   }
 
@@ -402,8 +416,8 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
   }
 
   /**
-    * Change to Hive CTAS statement.
-    */
+   * Change to Hive CTAS statement.
+   */
   protected def withSelectInto(
       ctx: IntoClauseContext,
       query: LogicalPlan): LogicalPlan = withOrigin(ctx) {
