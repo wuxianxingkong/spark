@@ -132,6 +132,10 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
     // Build the insert clauses.
     val inserts = ctx.multiInsertQueryBody.asScala.map {
       body =>
+        assert(body.querySpecification.intoClause == null,
+          "Multi-Insert queries cannot have a into clause in their individual SELECT statements",
+          body)
+
         assert(body.querySpecification.fromClause == null,
           "Multi-Insert queries cannot have a FROM clause in their individual SELECT statements",
           body)
@@ -155,13 +159,15 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
    */
   override def visitSingleInsertQuery(
       ctx: SingleInsertQueryContext): LogicalPlan = withOrigin(ctx) {
+    val intoClause = judgeInto(ctx.queryTerm)
+    if (ctx.insertInto != null && intoClause != null) {
+      operationNotAllowed("INSERT INTO ... SELECT INTO", ctx)
+    }
     plan(ctx.queryTerm).
       // Add organization statements.
       optionalMap(ctx.queryOrganization)(withQueryResultClauses).
-      // Add insert.
-      optionalMap(ctx.insertInto())(withInsertInto).
-      optionalMap(judgeInto(ctx.queryTerm))(withSelectInto)
-
+      optionalMap(ctx.insertInto)(withInsertInto).
+      optionalMap(intoClause)(withSelectInto)
   }
   private def judgeInto(
       ctx: SqlBaseParser.QueryTermContext): IntoClauseContext = {
