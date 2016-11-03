@@ -40,6 +40,17 @@ case class CreateTable(
   override def innerChildren: Seq[QueryPlan[_]] = query.toSeq
 }
 
+case class CreateIndexTable(
+      targetTableDesc: CatalogTable,
+      mode: SaveMode,
+      sourceRelation: LogicalPlan)
+  extends LogicalPlan with Command {
+  assert(targetTableDesc.provider.isDefined, "The table to be created must have a provider.")
+
+
+  override def innerChildren: Seq[QueryPlan[_]] = Option(sourceRelation).toSeq
+}
+
 /**
  * Create or replace a local/global temporary view with given data source.
  */

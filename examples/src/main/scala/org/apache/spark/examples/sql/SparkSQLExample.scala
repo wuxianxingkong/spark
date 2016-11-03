@@ -41,10 +41,9 @@ object SparkSQLExample {
   def main(args: Array[String]) {
     // $example on:init_session$
     val spark = SparkSession
-      .builder()
+      .builder().master("local")
       .appName("Spark SQL basic example")
-      .config("spark.some.config.option", "some-value")
-      .getOrCreate()
+      .getOrCreate()       //.config("spark.some.config.option", "some-value")
 
     // For implicit conversions like converting RDDs to DataFrames
     import spark.implicits._

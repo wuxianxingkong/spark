@@ -152,6 +152,7 @@ statement
     | SET ROLE .*?                                                     #failNativeCommand
     | SET .*?                                                          #setConfiguration
     | RESET                                                            #resetConfiguration
+    | CREATE INDEX index=tableIdentifier ON TABLE source=tableIdentifier '(' namedExpressionSeq ')' tableProvider  #createIndex
     | unsupportedHiveNativeCommands .*?                                #failNativeCommand
     ;
 
@@ -172,7 +173,6 @@ unsupportedHiveNativeCommands
     | kw1=SHOW kw2=TRANSACTIONS
     | kw1=SHOW kw2=INDEXES
     | kw1=SHOW kw2=LOCKS
-    | kw1=CREATE kw2=INDEX
     | kw1=DROP kw2=INDEX
     | kw1=ALTER kw2=INDEX
     | kw1=LOCK kw2=TABLE
