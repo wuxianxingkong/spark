@@ -234,3 +234,82 @@ case class CreateDataSourceTableAsSelectCommand(
     Seq.empty[Row]
   }
 }
+
+/**
+ * A command used to create a index data source table using the data of a exist table.
+ */
+case class CreateIndexTableAsSelectCommand(
+      table: CatalogTable,
+      mode: SaveMode,
+      query: LogicalPlan)
+  extends RunnableCommand {
+
+  override protected def innerChildren: Seq[LogicalPlan] = Seq(query)
+
+  override def run(sparkSession: SparkSession): Seq[Row] = {
+    assert(table.tableType != CatalogTableType.VIEW)
+    assert(table.provider.isDefined)
+    assert(table.schema.isEmpty)
+
+    val tableName = table.identifier.unquotedString
+    val provider = table.provider.getOrElse("com.xingkong.index")
+    val sessionState = sparkSession.sessionState
+
+    val optionsWithPath = if (table.tableType == CatalogTableType.MANAGED) {
+      table.storage.properties + ("path" -> (sessionState.catalog.defaultTablePath(table.identifier)
+        +"_00index"))
+    } else {
+      table.storage.properties
+    }
+    var createMetastoreTable = false
+    var existingSchema = Option.empty[StructType]
+    if (sparkSession.sessionState.catalog.tableExists(table.identifier)) {
+      // Check if we need to throw an exception or just return.
+      throw new AnalysisException(s"Table $tableName already exists. " +
+        s"If you are using saveAsTable, you can set SaveMode to SaveMode.Append to " +
+        s"insert data into the table or set SaveMode to SaveMode.Overwrite to overwrite" +
+        s"the existing data. " +
+        s"Or, if you are using SQL CREATE TABLE, you need to drop $tableName first.")
+    } else {
+      // The table does not exist. We need to create it in metastore.
+      createMetastoreTable = true
+    }
+
+    val data = Dataset.ofRows(sparkSession, query)
+    val df = existingSchema match {
+      // If we are inserting into an existing table, just use the existing schema.
+      case Some(s) => data.selectExpr(s.fieldNames: _*)
+      case None => data
+    }
+
+    // Create the relation based on the data of df.
+    val dataSource = DataSource(
+      sparkSession,
+      className = provider,
+      partitionColumns = table.partitionColumnNames,
+      bucketSpec = table.bucketSpec,
+      options = optionsWithPath)
+
+    val result = try {
+      // here very important
+      dataSource.write(mode, df)
+    } catch {
+      case ex: AnalysisException =>
+        logError(s"Failed to write to table $tableName in $mode mode", ex)
+        throw ex
+    }
+    if (createMetastoreTable) {
+      val newTable = table.copy(
+        storage = table.storage.copy(properties = optionsWithPath),
+        // We will use the schema of resolved.relation as the schema of the table (instead of
+        // the schema of df). It is important since the nullability may be changed by the relation
+        // provider (for example, see org.apache.spark.sql.parquet.DefaultSource).
+        schema = result.schema)
+      sessionState.catalog.createTable(newTable, ignoreIfExists = false)
+    }
+
+    // Refresh the cache of the table in the catalog.
+    sessionState.catalog.refreshTable(table.identifier)
+    Seq.empty[Row]
+  }
+}

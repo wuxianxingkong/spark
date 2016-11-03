@@ -40,6 +40,18 @@ case class CreateTable(tableDesc: CatalogTable, mode: SaveMode, query: Option[Lo
   override def children: Seq[LogicalPlan] = query.toSeq
 }
 
+case class CreateIndexTable(
+      targetTableDesc: CatalogTable,
+      mode: SaveMode,
+      sourceRelation: LogicalPlan)
+  extends LogicalPlan with Command {
+  assert(targetTableDesc.provider.isDefined, "The table to be created must have a provider.")
+
+  override def output: Seq[Attribute] = Seq.empty[Attribute]
+
+  override def children: Seq[LogicalPlan] = Option(sourceRelation).toSeq
+}
+
 case class CreateTempViewUsing(
     tableIdent: TableIdentifier,
     userSpecifiedSchema: Option[StructType],

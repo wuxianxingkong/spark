@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+// scalastyle:off
 package org.apache.spark.sql.execution
 
 import scala.collection.JavaConverters._
-
 import org.antlr.v4.runtime.{ParserRuleContext, Token}
 import org.antlr.v4.runtime.tree.TerminalNode
-
 import org.apache.spark.sql.SaveMode
+import org.apache.spark.sql.catalyst.analysis.{UnresolvedAlias, UnresolvedRelation}
 import org.apache.spark.sql.catalyst.{FunctionIdentifier, TableIdentifier}
 import org.apache.spark.sql.catalyst.catalog._
+import org.apache.spark.sql.catalyst.expressions.{Expression, NamedExpression}
 import org.apache.spark.sql.catalyst.parser._
 import org.apache.spark.sql.catalyst.parser.SqlBaseParser._
-import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, OneRowRelation, ScriptInputOutputSchema}
+import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, OneRowRelation, Project, ScriptInputOutputSchema}
 import org.apache.spark.sql.execution.command._
 import org.apache.spark.sql.execution.datasources.{CreateTable, CreateTempViewUsing, _}
 import org.apache.spark.sql.internal.{HiveSerDe, SQLConf, VariableSubstitution}
@@ -307,6 +307,37 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
   }
 
   /**
+  * Create a [[CreateTable]] logical plan.
+  */
+  override def visitCreateIndex(ctx: CreateIndexContext): LogicalPlan = withOrigin(ctx) {
+    val targetTable = visitTableIdentifier(ctx.index)
+    val sourceTable = visitTableIdentifier(ctx.source)
+    // Expressions.
+    val expressions = Option(ctx.namedExpressionSeq).toSeq
+      .flatMap(_.namedExpression.asScala)
+      .map(typedVisit[Expression])
+    val namedExpressions = expressions.map {
+      case e: NamedExpression => e
+      case e: Expression => UnresolvedAlias(e)
+    }
+    val provider = ctx.tableProvider.qualifiedName.getText
+    val targetTableDesc = CatalogTable(
+      identifier = targetTable,
+      tableType = CatalogTableType.MANAGED,
+      storage = CatalogStorageFormat.empty.copy(properties = Map.empty),
+      schema = new StructType,
+      provider = Some(provider),
+      partitionColumnNames = Array.empty[String],
+      bucketSpec = None
+    )
+    // when index directory exists, delete it recursively
+    CreateIndexTable(
+      targetTableDesc,
+      SaveMode.Overwrite,
+      Project(namedExpressions, UnresolvedRelation(sourceTable, None)))
+  }
+
+  /**
    * Create a [[CreateTable]] logical plan.
    */
   override def visitCreateTableUsing(ctx: CreateTableUsingContext): LogicalPlan = withOrigin(ctx) {
@@ -367,6 +398,7 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
       }
     }
   }
+
 
   /**
    * Creates a [[CreateTempViewUsing]] logical plan.
@@ -1366,3 +1398,4 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
       schemaLess)
   }
 }
+// scalastyle:on
