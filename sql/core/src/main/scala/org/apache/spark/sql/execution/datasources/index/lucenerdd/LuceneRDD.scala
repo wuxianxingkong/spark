@@ -323,7 +323,8 @@ object LuceneRDD {
     if(hdfs.exists(hdfsPath)) {
       val qualified = hdfsPath.makeQualified(hdfs.getUri, hdfs.getWorkingDirectory)
       val directorys = hdfs.listStatus(qualified)
-      val indexPathsFiltered = directorys.filter(directory => directory.isDirectory && directory.getPath.toString.contains("indexDirectory"))
+      val indexPathsFiltered = directorys.filter(directory =>
+        directory.isDirectory && directory.getPath.toString.contains("indexDirectory"))
       val indexPaths = indexPathsFiltered.map(directory => directory.getPath.toString)
       val serialConf = new SeriConfiguration(conf)
       val rdd = sparkSession.sparkContext.parallelize[String](

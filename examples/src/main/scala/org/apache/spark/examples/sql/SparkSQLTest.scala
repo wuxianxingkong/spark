@@ -54,7 +54,7 @@ object SparkSQLTest {
     // For implicit conversions like converting RDDs to DataFrames
     // $example off:init_session$
     println(spark.conf.getAll)
-    test8(spark)
+    test9(spark)
 //    test9(spark)
     spark.stop()
   }
@@ -112,9 +112,9 @@ object SparkSQLTest {
     val luceneRDD = LuceneRDD(df,"test_test_1")
     println("print luceneRDD inner:")
     luceneRDD.count()
-//    luceneRDD.foreach(println)
-//    val results = luceneRDD.termQuery("name", "water")
-//    results.foreach(println)
+    luceneRDD.foreach(println)
+    val results = luceneRDD.termQuery("name", "water")
+    results.foreach(println)
   }
   private def test8(sparkSession: SparkSession) : Unit={
     sparkSession.sql("drop table if exists index_test_1")
@@ -127,6 +127,7 @@ object SparkSQLTest {
   private def test9(sparkSession: SparkSession) : Unit={
     val tableName = "test_test_1"
     val results = LuceneRDD(sparkSession, tableName).termQuery("name", "water")
+    println(results.count)
     results.foreach(println)
   }
   private def test10(sparkSession: SparkSession) : Unit={
