@@ -256,6 +256,8 @@ case class CreateIndexTableAsSelectCommand(
     val sessionState = sparkSession.sessionState
 
     val optionsWithPath = if (table.tableType == CatalogTableType.MANAGED) {
+      logInfo("Pay attention, maybe we need just set " +
+        "path to table.identifier without prefix sessionState.catalog.defaultTablePath")
       table.storage.properties + ("path" -> (sessionState.catalog.defaultTablePath(table.identifier)
         +"_00index"))
     } else {
