@@ -362,10 +362,14 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
       bucketSpec = None
     )
     // when index directory exists, delete it recursively
+    // CreateIndexTable(_, _, relation) , relation is
+    // UnresolvedRelation(sourceTable, None)
+    // or
+    // Project(namedExpressions, UnresolvedRelation(sourceTable, None))
     CreateIndexTable(
       targetTableDesc,
       SaveMode.Overwrite,
-      Project(namedExpressions, UnresolvedRelation(sourceTable, None)))
+      UnresolvedRelation(sourceTable, None))
   }
   /**
    * Create a data source table, returning a [[CreateTable]] logical plan.

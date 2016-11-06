@@ -20,18 +20,22 @@ package org.apache.spark.sql.execution.datasources.index.lucenerdd
 import com.twitter.algebird.{TopK, TopKMonoid}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
-import org.apache.lucene.document.Document
+import org.apache.lucene.document._
+import org.apache.lucene.index.DirectoryReader
 import org.apache.spark.sql.execution.datasources.index.lucenerdd.config.LuceneRDDConfigurable
 import org.apache.spark.sql.execution.datasources.index.lucenerdd.response.{LuceneRDDResponse, LuceneRDDResponsePartition}
 import org.apache.spark.rdd.RDD
-import org.apache.lucene.search.Query
+import org.apache.lucene.search.{IndexSearcher, MatchAllDocsQuery, Query}
+import org.apache.solr.store.hdfs.HdfsDirectory
 import org.apache.spark._
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.execution.datasources.index.lucenerdd.partition.{AbstractLuceneRDDPartition, LuceneRDDPartition}
 import org.apache.spark.sql.execution.datasources.index.lucenerdd.models.SparkScoreDoc
 import org.apache.spark.sql.execution.datasources.index.lucenerdd.store.Status
+import org.apache.spark.sql.types._
 
+import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
 /**
@@ -366,7 +370,41 @@ object LuceneRDD {
   : LuceneRDD[Row] = {
     apply(dataFrame.sqlContext.sparkContext.hadoopConfiguration, dataFrame.rdd, tableName)
   }
-
+  /**
+   * Infer schema
+   * @param sparkSession SparkSession
+   * @param tableName tableName
+   * @return
+   */
+  def inferSchema(sparkSession: SparkSession, tableName: String): StructType = {
+    val conf = sparkSession.sparkContext.hadoopConfiguration
+    val hdfsPath = new Path(tableName)
+    val hdfs = FileSystem.get(conf)
+    // Find all index partitions from HDFS
+    if(hdfs.exists(hdfsPath)) {
+      val qualified = hdfsPath.makeQualified(hdfs.getUri, hdfs.getWorkingDirectory)
+      val directorys = hdfs.listStatus(qualified)
+      val fullPath = directorys.filter(directory =>
+        directory.isDirectory && directory.getPath.toString.contains("indexDirectory")).head.getPath
+      val directory = new HdfsDirectory(fullPath, conf)
+      val indexReader = DirectoryReader.open(directory)
+      val indexSearcher = new IndexSearcher(indexReader)
+      val allFields = indexSearcher.search(new MatchAllDocsQuery(), 1).scoreDocs.flatMap(x =>
+        indexSearcher.getIndexReader.document(x.doc).getFields.asScala
+      ).map(field => field match {
+        case a: IntField => StructField(a.name, IntegerType, true)
+        case b: LongField => StructField(b.name, LongType, true)
+        case c: FloatField => StructField(c.name, FloatType, true)
+        case d: DoubleField => StructField(d.name, DoubleType, true)
+        case e: TextField => StructField(e.name, StringType, true)
+        case _ => StructField(field.name, StringType, true)
+      })
+      new StructType(allFields)
+    } else {
+      sys.error(s"${tableName} isn't exist")
+      new StructType(Array[StructField]())
+    }
+  }
   /**
    * Return project information, i.e., version number, build time etc
    * @return
