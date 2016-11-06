@@ -38,10 +38,9 @@ case class IndexRelation(
 
   override def sqlContext: SQLContext = sparkSession.sqlContext
 
-  override def schema: StructType = querySchema
-
-  val querySchema: StructType = {
-    StructType(Seq())
+  override def schema: StructType = {
+    
+    LuceneRDD.inferSchema(sparkSession, tableName)
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {

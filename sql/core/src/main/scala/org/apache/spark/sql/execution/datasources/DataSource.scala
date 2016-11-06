@@ -107,7 +107,10 @@ case class DataSource(
       "org.apache.spark.ml.source.libsvm.DefaultSource" -> libsvm,
       "org.apache.spark.ml.source.libsvm" -> libsvm,
       "com.databricks.spark.csv" -> csv,
-      "com.xingkong.index" -> index
+      "org.apache.spark.sql.index" -> index,
+      "org.apache.spark.sql.index.DefaultSource" -> index,
+      "org.apache.spark.sql.execution.datasources.index.DefaultSource" -> index,
+      "org.apache.spark.sql.execution.datasources.index" -> index
     )
   }
 

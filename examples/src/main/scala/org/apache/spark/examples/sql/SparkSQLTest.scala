@@ -54,7 +54,7 @@ object SparkSQLTest {
     // For implicit conversions like converting RDDs to DataFrames
     // $example off:init_session$
     println(spark.conf.getAll)
-    test9(spark)
+    test8(spark)
 //    test9(spark)
     spark.stop()
   }
@@ -121,8 +121,9 @@ object SparkSQLTest {
     val df = sparkSession.read.json("examples/src/main/resources1/")
     df.createOrReplaceTempView("test1")
     sparkSession.sql("select * from test1").show();
-    val df1=sparkSession.sql("create index index_test_1 on table test1 (name) using com.xingkong.index")
+    val df1=sparkSession.sql("create index index_test_1 on table test1 (name) using org.apache.spark.sql.index")
     df1.explain(true)
+    sparkSession.sql("show tables").show()
   }
   private def test9(sparkSession: SparkSession) : Unit={
     val tableName = "test_test_1"

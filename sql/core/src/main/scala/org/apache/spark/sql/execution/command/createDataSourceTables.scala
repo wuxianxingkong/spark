@@ -252,7 +252,7 @@ case class CreateIndexTableAsSelectCommand(
     assert(table.schema.isEmpty)
 
     val tableName = table.identifier.unquotedString
-    val provider = table.provider.getOrElse("com.xingkong.index")
+    val provider = table.provider.getOrElse("org.apache.spark.sql.index")
     val sessionState = sparkSession.sessionState
 
     val optionsWithPath = if (table.tableType == CatalogTableType.MANAGED) {

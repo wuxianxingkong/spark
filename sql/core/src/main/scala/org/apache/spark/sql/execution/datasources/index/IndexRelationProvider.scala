@@ -19,7 +19,8 @@ package org.apache.spark.sql.execution.datasources.index
 
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
-import org.apache.spark.sql.sources.{BaseRelation, CreatableRelationProvider, DataSourceRegister, RelationProvider}
+import org.apache.spark.sql.sources._
+import org.apache.spark.sql.types.StructType
 
 class IndexRelationProvider extends RelationProvider with CreatableRelationProvider
       with DataSourceRegister{
