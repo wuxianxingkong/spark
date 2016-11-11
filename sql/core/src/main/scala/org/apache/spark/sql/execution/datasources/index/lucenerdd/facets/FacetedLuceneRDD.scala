@@ -126,7 +126,7 @@ object FacetedLuceneRDD {
   def apply[T : ClassTag](elems: RDD[T])
                          (implicit conv: T => Document): FacetedLuceneRDD[T] = {
     val partitions = elems.mapPartitions[AbstractLuceneRDDPartition[T]](
-      iter => Iterator(LuceneRDDPartition(iter)(null)("", Status.Rewrite)),
+      iter => Iterator(LuceneRDDPartition(iter, null, "", Status.Rewrite)),
       preservesPartitioning = true)
     new FacetedLuceneRDD[T](partitions)
   }

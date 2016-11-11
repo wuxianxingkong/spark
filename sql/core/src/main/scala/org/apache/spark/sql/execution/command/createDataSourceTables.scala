@@ -21,7 +21,7 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.analysis.EliminateSubqueryAliases
 import org.apache.spark.sql.catalyst.catalog._
 import org.apache.spark.sql.catalyst.plans.QueryPlan
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{BaseRelation, InsertableRelation}
 import org.apache.spark.sql.types._
@@ -241,6 +241,7 @@ case class CreateDataSourceTableAsSelectCommand(
 case class CreateIndexTableAsSelectCommand(
       table: CatalogTable,
       mode: SaveMode,
+      columns: Seq[String],
       query: LogicalPlan)
   extends RunnableCommand {
 
@@ -259,7 +260,13 @@ case class CreateIndexTableAsSelectCommand(
       logInfo("Pay attention, maybe we need just set " +
         "path to table.identifier without prefix sessionState.catalog.defaultTablePath")
       table.storage.properties + ("path" -> (sessionState.catalog.defaultTablePath(table.identifier)
-        +"_00index"))
+        +"_00index")) + ("indexColumns" -> columns.mkString(",")) + {
+        query match {
+          case project: Project => ("quickway" -> "no")
+          case _ => ("quickway" -> "yes")
+        }
+      }
+
     } else {
       table.storage.properties
     }

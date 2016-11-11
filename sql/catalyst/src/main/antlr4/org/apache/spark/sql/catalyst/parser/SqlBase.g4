@@ -339,7 +339,7 @@ querySpecification
        (RECORDREADER recordReader=STRING)?
        fromClause?
        (WHERE where=booleanExpression)?)
-    | ((kind=SELECT setQuantifier? namedExpressionSeq indexSearch? fromClause?
+    | ((kind=SELECT setQuantifier? namedExpressionSeq fromClause?
        | fromClause (kind=SELECT setQuantifier? namedExpressionSeq)?)
        lateralView*
        (WHERE where=booleanExpression)?
@@ -348,9 +348,6 @@ querySpecification
        windows?)
     ;
 
-indexSearch
-    : MATCH '(' namedExpressionSeq ')' AGAINST '(' queryString=STRING ')'
-    ;
 
 fromClause
     : FROM relation (',' relation)* lateralView*
@@ -474,6 +471,7 @@ expression
 booleanExpression
     : NOT booleanExpression                                        #logicalNot
     | predicated                                                   #booleanDefault
+    | fulltextquery                                                #fulltextsearch
     | left=booleanExpression operator=AND right=booleanExpression  #logicalBinary
     | left=booleanExpression operator=OR right=booleanExpression   #logicalBinary
     | EXISTS '(' query ')'                                         #exists
@@ -484,6 +482,13 @@ booleanExpression
 //  https://github.com/antlr/antlr4/issues/781
 predicated
     : valueExpression predicate?
+    ;
+
+fulltextquery
+    :operator=(TERMQUERY|FUZZYQUERY|PHRASEQUERY|PREFIXQUERY)
+         '(' (field=valueExpression ',')? queryString=valueExpression ',' (maxEdits=valueExpression ',')?
+          topK=valueExpression ')' #fieldQuery
+    | operator=COMPLEXQUERY '(' queryString=valueExpression ',' topK=valueExpression ')'        #complexQuery
     ;
 
 predicate
@@ -697,6 +702,11 @@ NO: 'NO';
 EXISTS: 'EXISTS';
 BETWEEN: 'BETWEEN';
 LIKE: 'LIKE';
+TERMQUERY: 'TERMQUERY';
+FUZZYQUERY: 'FUZZYQUERY';
+PHRASEQUERY: 'PHRASEQUERY';
+PREFIXQUERY: 'PREFIXQUERY';
+COMPLEXQUERY: 'COMPLEXQUERY';
 RLIKE: 'RLIKE' | 'REGEXP';
 IS: 'IS';
 NULL: 'NULL';

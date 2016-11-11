@@ -120,6 +120,71 @@ case class Like(left: Expression, right: Expression)
   }
 }
 
+case class TermQuery(left: Expression, right: Expression, topK: Expression)
+  extends Expression with Unevaluable {
+
+  override def toString: String = s"[*Term* field:$left, query:$right,  topK:$topK]"
+
+
+  override def dataType: DataType = BooleanType
+
+  override def nullable: Boolean = true
+
+  override def children: Seq[Expression] = left :: right :: topK :: Nil
+}
+
+case class FuzzyQuery(left: Expression, right: Expression, maxEdits: Expression, topK: Expression)
+  extends Expression with Unevaluable {
+
+  override def toString: String = s"[*Fuzzy* field:$left, query:$right,  topK:$topK]"
+
+
+  override def dataType: DataType = BooleanType
+
+  override def nullable: Boolean = true
+
+  override def children: Seq[Expression] = left :: right :: topK :: Nil
+}
+
+case class PhraseQuery(left: Expression, right: Expression, topK: Expression)
+  extends Expression with Unevaluable {
+
+  override def toString: String = s"[*Phrase* field:$left, query:$right,  topK:$topK]"
+
+
+  override def dataType: DataType = BooleanType
+
+  override def nullable: Boolean = true
+
+  override def children: Seq[Expression] = left :: right :: topK :: Nil
+}
+
+case class PrefixQuery(left: Expression, right: Expression, topK: Expression)
+  extends Expression with Unevaluable {
+
+  override def toString: String = s"[*Prefix* field:$left, query:$right,  topK:$topK]"
+
+
+  override def dataType: DataType = BooleanType
+
+  override def nullable: Boolean = true
+
+  override def children: Seq[Expression] = left :: right :: topK :: Nil
+}
+
+case class ComplexQuery(left: Expression, right: Expression)
+  extends Expression with Unevaluable {
+
+  override def toString: String = s"[*Complex* query:$left, topK:$right]"
+
+
+  override def dataType: DataType = BooleanType
+
+  override def nullable: Boolean = true
+
+  override def children: Seq[Expression] = left :: right :: Nil
+}
+
 @ExpressionDescription(
   usage = "str _FUNC_ regexp - Returns true if str matches regexp and false otherwise.")
 case class RLike(left: Expression, right: Expression)

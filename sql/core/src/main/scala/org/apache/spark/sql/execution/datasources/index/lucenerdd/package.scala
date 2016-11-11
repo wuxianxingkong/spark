@@ -17,6 +17,8 @@
 package org.apache.spark.sql.execution.datasources.index
 
 import org.apache.lucene.document._
+import org.apache.lucene.index.IndexOptions
+import org.apache.lucene.util.NumericUtils
 import org.apache.spark.sql.Row
 
 import scala.reflect.ClassTag
@@ -24,8 +26,9 @@ import scala.reflect.ClassTag
 package object lucenerdd {
 
   private val Stored = Field.Store.YES
-  private val DefaultFieldName = "_1"
 
+
+  private val DefaultFieldName = "_1"
   implicit def intToDocument(v: Int): Document = {
     val doc = new Document
     if (v != null) doc.add(new IntField(DefaultFieldName, v, Stored))
@@ -72,6 +75,29 @@ package object lucenerdd {
         doc.add(new FloatField(fieldName, x, Stored))
       case x: Double if x != null =>
         doc.add(new DoubleField(fieldName, x, Stored))
+      case _ => Unit
+    }
+    doc
+  }
+  /**
+   * Compatible to div fieldType
+   * @param s
+   * @tparam T
+   * @return
+   */
+  def typeToDocument[T: ClassTag](doc: Document, fieldName: String,
+      s: T, fieldType: FieldType): Document = {
+    s match {
+      case x: String if x != null =>
+        doc.add(new Field(fieldName, x, fieldType))
+      case x: Long if x != null =>
+        doc.add(new LongField(fieldName, x, fieldType))
+      case x: Int if x != null =>
+        doc.add(new IntField(fieldName, x, fieldType))
+      case x: Float if x != null =>
+        doc.add(new FloatField(fieldName, x, fieldType))
+      case x: Double if x != null =>
+        doc.add(new DoubleField(fieldName, x, fieldType))
       case _ => Unit
     }
     doc
@@ -123,6 +149,26 @@ package object lucenerdd {
       typeToDocument(doc, fieldName, row.get(index))
     }
 
+    doc
+  }
+  /**
+    * Implicit conversion for Spark Row: used for DataFrame
+    * @param row
+    * @return
+    */
+  implicit def sparkRowToDocument(row: Row,
+      judgeContain: (String) => Boolean): Document = {
+    val doc = new Document
+    val fieldNames = row.schema.fieldNames
+    fieldNames.foreach{ case fieldName =>
+      val index = row.fieldIndex(fieldName)
+      if(judgeContain(fieldName)) {
+        typeToDocument(doc, fieldName, row.get(index))
+      } else {
+        typeToDocument(doc, fieldName, row.get(index))
+      }
+
+    }
     doc
   }
 }

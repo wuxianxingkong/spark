@@ -29,27 +29,66 @@ import org.apache.spark.sql.types.{FloatType, StructField, StructType}
 
 case class IndexRelation(
       val parameters: Map[String, String],
-      val dataFrame: Option[DataFrame],
       val tableName: String,
+      val userSpecifiedSchema: StructType,
       @transient val sparkSession: SparkSession)
   extends BaseRelation
     with PrunedFilteredScan
-    with InsertableRelation {
-
+    with InsertableRelation with Logging{
+  // val dataFrame: Option[DataFrame]
   override def sqlContext: SQLContext = sparkSession.sqlContext
 
   override def schema: StructType = {
-    
-    LuceneRDD.inferSchema(sparkSession, tableName)
+    logInfo("Infer Schema from index...")
+    val struct = LuceneRDD.inferSchema(sparkSession, tableName)
+    logInfo(s"Schema is $struct")
+    struct
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
-    LuceneRDD(sparkSession, tableName).termQuery("", "", 10)
-    null
+    logInfo(s"User SpecifiedSchema: $userSpecifiedSchema")
+    logInfo("Print filters..." + filters.map(filter => filter.toString).mkString(","))
+    // There is just on filter
+    val filter = filters(0)
+    val midResult = filter match {
+      case TermQuery(fieldName, query, topK) =>
+        LuceneRDD(sparkSession, tableName).termQuery(
+          fieldName, query, Integer.valueOf(topK))
+      case FuzzyQuery(fieldName, query, maxEdits, topK) =>
+        LuceneRDD(sparkSession, tableName).fuzzyQuery(
+          fieldName, query, maxEdits, Integer.valueOf(topK))
+      case PhraseQuery(fieldName, query, topK) =>
+        LuceneRDD(sparkSession, tableName).phraseQuery(
+          fieldName, query, Integer.valueOf(topK))
+      case PrefixQuery(fieldName, query, topK) =>
+        LuceneRDD(sparkSession, tableName).prefixQuery(
+          fieldName, query, Integer.valueOf(topK))
+      case ComplexQuery(query, topK) =>
+        LuceneRDD(sparkSession, tableName).query(
+          query, Integer.valueOf(topK))
+      case _ => throw new
+          UnsupportedOperationException(s"Cannot support other filter: $this")
+    }
+
   }
 
   override def insert(data: DataFrame, overwrite: Boolean): Unit = {
-    val rdd = LuceneRDD(data, tableName)
-    rdd.count()
+    def show(x: Option[String]) = x match {
+      case Some(s) => s
+      case None => "?"
+    }
+    if (parameters.contains("quickway") && show(parameters.get("quickway")).equals("yes")) {
+      val indexColumns_string = parameters.getOrElse("indexColumns",
+        sys.error("Index path isn't specified..."))
+      val indexColumns = indexColumns_string.split(",")
+      val rdd = LuceneRDD(data, tableName, indexColumns.toSeq)
+      rdd.count()
+    } else {
+      val rdd = LuceneRDD(data, tableName)
+      rdd.count()
+    }
+
+    //
+
   }
 }

@@ -54,8 +54,8 @@ object SparkSQLTest {
     // For implicit conversions like converting RDDs to DataFrames
     // $example off:init_session$
     println(spark.conf.getAll)
-    test8(spark)
-//    test9(spark)
+    test13(spark)
+//    test10(spark)
     spark.stop()
   }
   private def test1(sparkSession: SparkSession) : Unit={
@@ -99,7 +99,9 @@ object SparkSQLTest {
     // val df=sparkSession.createDataFrame(rdd)
     df.printSchema()
     val luceneRDD = LuceneRDD(df,"test_test_1")
-    val results = luceneRDD.termQuery("name", "justin")
+//    val results = luceneRDD.termQuery("name", "justin")
+    val results = luceneRDD.termQuery("age", "30")
+    println("result count: " + results.count)
     results.foreach(println)
   }
   private def test7(sparkSession: SparkSession) : Unit={
@@ -132,6 +134,51 @@ object SparkSQLTest {
     results.foreach(println)
   }
   private def test10(sparkSession: SparkSession) : Unit={
+    // test index with specified columns
+    val df = sparkSession.read.json("examples/src/main/resources1/")
+    df.printSchema()
+    val luceneRDD = LuceneRDD(df,"test_test_1",Seq[String]("age"))
+    val results = luceneRDD.termQuery("age", "30")
+    println("Result nums: " + results.count())
+    results.foreach(println)
+    // lucene中不论用什么方法索引数字类型，都无法使用termquery搜索到
+  }
+  private def test11(sparkSession: SparkSession) : Unit={
+    // test index with specified columns
+    val df = sparkSession.read.json("examples/src/main/resources3/")
+    df.printSchema()
+    val luceneRDD = LuceneRDD(df,"test_test_1",Seq[String]("another"))
+    val results = luceneRDD.termQuery("another", "b")
+    println("Result nums: " + results.count())
+    results.foreach(println)
+    // 如果索引的词是停用词，那么是搜不到的，比如"A"等停用词
+    // 对于非停用词，如"B"，就能搜到
+
+    //验证了正确性：即，只对Seq指定的column建立了索引，并且，所有field均已存储
+  }
+  private def test12(sparkSession: SparkSession) : Unit={
+    val df1 = sparkSession.read.json("examples/src/main/resources1/")
+    df1.createOrReplaceTempView("table1")
+    val df3 = sparkSession.read.json("examples/src/main/resources3/")
+    df1.createOrReplaceTempView("table2")
+    val result = sparkSession.sql("select * from table1 join table2 on table1.name = table2.name")
+    result.explain(true)
+    result.show()
+    //result.collect().foreach(println)
+    // 准备参考下join的语法树结构
+    // 结论：没有帮助
+  }
+  private def test13(sparkSession: SparkSession) : Unit={
+    val df = sparkSession.read.json("examples/src/main/resources1/")
+    df.createOrReplaceTempView("test1")
+    sparkSession.sql("select * from test1").show()
+    sparkSession.sql("drop table if exists index_test_13")
+    val df1=sparkSession.sql("create index index_test_13 on table test1 (name) using org.apache.spark.sql.index")
+    df1.explain(true)
+    val df2 = sparkSession.sql("select * from index_test_1 where termquery('name','justin','1')")
+    df2.show()
+    sparkSession.sql("describe extended test1").show()
+    sparkSession.sql("describe extended index_test_13").show()
 
   }
 }

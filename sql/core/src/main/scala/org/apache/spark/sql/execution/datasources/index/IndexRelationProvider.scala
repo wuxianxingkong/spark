@@ -23,28 +23,39 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 
 class IndexRelationProvider extends RelationProvider with CreatableRelationProvider
-      with DataSourceRegister{
+    with SchemaRelationProvider
+    with DataSourceRegister{
 
   override def createRelation(
       sqlContext: SQLContext,
       parameters: Map[String, String]): BaseRelation = {
-
+    // This method is for reading
     val tableName = parameters.getOrElse("path", sys.error("Index path isn't specified..."))
-    IndexRelation(parameters, None, tableName, sqlContext.sparkSession)
+    IndexRelation(parameters, tableName, null, sqlContext.sparkSession)
   }
+  override def createRelation(sqlContext: SQLContext,
+                              parameters: Map[String, String],
+                              schema: StructType): BaseRelation = {
+    // This method is for reading with user specified schema
+    val tableName = parameters.getOrElse("path", sys.error("Index path isn't specified..."))
+    IndexRelation(parameters, tableName, schema, sqlContext.sparkSession)
 
+  }
   override def createRelation(
       sqlContext: SQLContext,
       mode: SaveMode,
       parameters: Map[String, String],
       data: DataFrame): BaseRelation = {
-
+    // This method is for writing data into index
     val tableName = parameters.getOrElse("path", sys.error("Index path isn't specified..."))
 
     val indexRelation: IndexRelation = new IndexRelation(
-      parameters, Some(data), tableName, sqlContext.sparkSession)
+      parameters, tableName, null, sqlContext.sparkSession)
     indexRelation.insert(data, overwrite = true)
+
     indexRelation
   }
+
   override def shortName(): String = "index"
+
 }

@@ -2671,6 +2671,9 @@
                     </bannedDependencies>
                   </rules>
                 </configuration>
+
+
+
               </execution>
             </executions>
           </plugin>

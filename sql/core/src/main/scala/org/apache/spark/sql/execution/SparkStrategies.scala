@@ -437,11 +437,13 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
             query)
         ExecutedCommandExec(cmd) :: Nil
 
-      case CreateIndexTable(tableDesc, mode, sourceRelation) if tableDesc.provider.get != "hive" =>
+      case CreateIndexTable(tableDesc, mode,
+        columns, sourceRelation) if tableDesc.provider.get != "hive" =>
         val cmd =
           CreateIndexTableAsSelectCommand(
             tableDesc,
             mode,
+            columns,
             sourceRelation)
         ExecutedCommandExec(cmd) :: Nil
 

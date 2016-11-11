@@ -43,6 +43,7 @@ case class CreateTable(tableDesc: CatalogTable, mode: SaveMode, query: Option[Lo
 case class CreateIndexTable(
       targetTableDesc: CatalogTable,
       mode: SaveMode,
+      colums: Seq[String],
       sourceRelation: LogicalPlan)
   extends LogicalPlan with Command {
   assert(targetTableDesc.provider.isDefined, "The table to be created must have a provider.")

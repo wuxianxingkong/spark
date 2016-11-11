@@ -890,12 +890,14 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
    * }}}
    */
   override def visitPredicated(ctx: PredicatedContext): Expression = withOrigin(ctx) {
+
     val e = expression(ctx.valueExpression)
     if (ctx.predicate != null) {
       withPredicate(e, ctx.predicate)
     } else {
       e
     }
+
   }
 
   /**
@@ -933,6 +935,25 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
       case SqlBaseParser.NULL =>
         IsNull(e)
     }
+  }
+
+  override def visitFieldQuery(ctx: FieldQueryContext): Expression = withOrigin(ctx) {
+    ctx.operator.getType match {
+      case SqlBaseParser.TERMQUERY =>
+        TermQuery(expression(ctx.field), expression(ctx.queryString), expression(ctx.topK))
+      case SqlBaseParser.FUZZYQUERY =>
+        FuzzyQuery(expression(ctx.field),
+          expression(ctx.queryString),
+          expression(ctx.maxEdits), expression(ctx.topK))
+      case SqlBaseParser.PHRASEQUERY =>
+        PhraseQuery(expression(ctx.field), expression(ctx.queryString), expression(ctx.topK))
+      case SqlBaseParser.PREFIXQUERY =>
+        PrefixQuery(expression(ctx.field), expression(ctx.queryString), expression(ctx.topK))
+      case SqlBaseParser.COMPLEXQUERY =>
+        ComplexQuery(expression(ctx.queryString), expression(ctx.topK))
+      case _ => null
+    }
+
   }
 
   /**

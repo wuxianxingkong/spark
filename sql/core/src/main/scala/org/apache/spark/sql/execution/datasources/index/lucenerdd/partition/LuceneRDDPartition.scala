@@ -21,13 +21,14 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.lucene.document._
 import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyReader
-import org.apache.lucene.index.DirectoryReader
+import org.apache.lucene.index.{DirectoryReader, IndexOptions}
 import org.apache.lucene.search._
 import org.apache.lucene.store.Directory
 import org.apache.solr.store.hdfs.HdfsDirectory
 import org.apache.spark.SparkContext
 import org.apache.spark.deploy.SparkHadoopUtil
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.execution.datasources.index.lucenerdd.AllFields
+import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.internal.SessionState
 import org.joda.time.DateTime
 import org.apache.spark.sql.execution.datasources.index.lucenerdd.facets.FacetedLuceneRDD
@@ -213,8 +214,70 @@ private[lucenerdd] class LuceneRDDPartition[T]
 
 object  LuceneRDDPartition {
   def apply[T: ClassTag]
-      (iter: Iterator[T])(conf: Configuration)(path: String, status: Status)(
+      (iter: Iterator[T], conf: Configuration, path: String, status: Status)(
       implicit docConversion: T => Document): LuceneRDDPartition[T] = {
     new LuceneRDDPartition[T](iter)(conf)(path, status)(docConversion, classTag[T])
+  }
+  def apply
+  (indexColumns: Seq[String], iter: Iterator[Row], conf: Configuration,
+   path: String, status: Status): LuceneRDDPartition[Row] = {
+    implicit val columns = indexColumns.foldLeft(Set[String]())((set, column) => set + column)
+    val Stored = Field.Store.YES
+    /**
+      * Compatible to div fieldType
+      * @param s
+      * @tparam T
+      * @return
+      */
+    def typeToDocument[T: ClassTag](doc: Document, fieldName: String,
+                                    s: T): Document = {
+      s match {
+        case x: String if x != null =>
+          doc.add(new TextField(fieldName, x, Field.Store.YES))
+        case x: Long if x != null =>
+          doc.add(new LongField(fieldName, x, Field.Store.YES))
+        case x: Int if x != null =>
+          doc.add(new IntField(fieldName, x, Field.Store.YES))
+        case x: Float if x != null =>
+          doc.add(new FloatField(fieldName, x, Field.Store.YES))
+        case x: Double if x != null =>
+          doc.add(new DoubleField(fieldName, x, Field.Store.YES))
+        case _ => Unit
+      }
+      doc
+    }
+
+    def typeToDocumentWithoutIndex[T: ClassTag](doc: Document, fieldName: String,
+                                    s: T): Document = {
+      s match {
+        case x: String if x != null =>
+          doc.add(new Field(fieldName, x, AllFields.notIndex_textFieldType))
+        case x: Long if x != null =>
+          doc.add(new LongField(fieldName, x, AllFields.notIndex_longFieldType))
+        case x: Int if x != null =>
+          doc.add(new IntField(fieldName, x, AllFields.notIndex_intFieldType))
+        case x: Float if x != null =>
+          doc.add(new FloatField(fieldName, x, AllFields.notIndex_floatFieldType))
+        case x: Double if x != null =>
+          doc.add(new DoubleField(fieldName, x, AllFields.notIndex_doubleFieldType))
+        case _ => Unit
+      }
+      doc
+    }
+    def docConversion(row: Row)(implicit columns: Set[String]): Document = {
+      val doc = new Document
+      val fieldNames = row.schema.fieldNames
+      fieldNames.foreach{ case fieldName =>
+        val index = row.fieldIndex(fieldName)
+        if(columns.contains(fieldName)) {
+          typeToDocument(doc, fieldName, row.get(index))
+        } else {
+          typeToDocumentWithoutIndex(doc, fieldName, row.get(index))
+        }
+
+      }
+      doc
+    }
+    new LuceneRDDPartition[Row](iter)(conf)(path, status)(docConversion, classTag[Row])
   }
 }
