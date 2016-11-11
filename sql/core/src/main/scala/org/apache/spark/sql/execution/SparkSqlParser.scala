@@ -366,9 +366,13 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
     // UnresolvedRelation(sourceTable, None)
     // or
     // Project(namedExpressions, UnresolvedRelation(sourceTable, None))
+
+    // Extract names from namedExpressions
+    val columns = namedExpressions.map(e => e.name)
     CreateIndexTable(
       targetTableDesc,
       SaveMode.Overwrite,
+      columns,
       UnresolvedRelation(sourceTable, None))
   }
   /**

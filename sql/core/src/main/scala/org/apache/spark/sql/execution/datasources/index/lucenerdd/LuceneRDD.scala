@@ -307,9 +307,28 @@ object LuceneRDD {
     (implicit conv: T => Document): LuceneRDD[T] = {
     val serialConf = new SeriConfiguration(conf)
     val partitions = elems.mapPartitions[AbstractLuceneRDDPartition[T]](
-      iter => Iterator(LuceneRDDPartition(iter)(serialConf)(tableName, Status.Rewrite)),
+      iter => Iterator(LuceneRDDPartition(iter, serialConf, tableName, Status.Rewrite)),
       preservesPartitioning = true)
     new LuceneRDD[T](partitions)
+  }
+
+  /**
+    * Instantiate a LuceneRDD given an RDD[Row] and indexed columns
+    *
+    * @param elems RDD of type Row
+    * @param tableName table name
+    * @param indexColumns columns to be indexed
+    * @return
+    */
+  def apply(conf: Configuration, elems: RDD[Row],
+      tableName: String, indexColumns: Seq[String])
+      : LuceneRDD[Row] = {
+    val serialConf = new SeriConfiguration(conf)
+    val partitions = elems.mapPartitions[AbstractLuceneRDDPartition[Row]](
+      iter => Iterator(LuceneRDDPartition(indexColumns, iter, serialConf,
+        tableName, Status.Rewrite)),
+      preservesPartitioning = true)
+    new LuceneRDD[Row](partitions)
   }
 
   /**
@@ -336,7 +355,7 @@ object LuceneRDD {
       val partitions = rdd.mapPartitions[AbstractLuceneRDDPartition[String]](
         iter => {
           val temp = iter.take(1).next().asInstanceOf[String]
-          Iterator(LuceneRDDPartition(iter)(serialConf)(temp, Status.Exists))},
+          Iterator(LuceneRDDPartition(iter, serialConf, temp, Status.Exists))},
         preservesPartitioning = true)
       return new LuceneRDD[String](partitions)
     } else {
@@ -364,12 +383,28 @@ object LuceneRDD {
    * Instantiate a LuceneRDD with DataFrame
    *
    * @param dataFrame Spark DataFrame
+   * @param tableName tableName
    * @return
    */
   def apply(dataFrame: DataFrame, tableName: String)
   : LuceneRDD[Row] = {
     apply(dataFrame.sqlContext.sparkContext.hadoopConfiguration, dataFrame.rdd, tableName)
   }
+
+  /**
+    * Instantiate a LuceneRDD with DataFrame
+    *
+    * @param dataFrame Spark DataFrame
+    * @param tableName tableName
+    * @param indexColumns: Seq[String]
+    * @return
+    */
+  def apply(dataFrame: DataFrame, tableName: String, indexColumns: Seq[String])
+  : LuceneRDD[Row] = {
+    apply(dataFrame.sqlContext.sparkContext.hadoopConfiguration,
+      dataFrame.rdd, tableName, indexColumns)
+  }
+
   /**
    * Infer schema
    * @param sparkSession SparkSession

@@ -218,3 +218,26 @@ case class StringEndsWith(attribute: String, value: String) extends Filter {
 case class StringContains(attribute: String, value: String) extends Filter {
   override def references: Array[String] = Array(attribute)
 }
+
+
+
+case class TermQuery(attribute: String, value: String, topK: Integer) extends Filter {
+  override def references: Array[String] = Array(attribute)
+}
+
+case class FuzzyQuery(attribute: String, value: String,
+      maxEdits: Integer, topK: Integer) extends Filter {
+  override def references: Array[String] = Array(attribute)
+}
+
+case class PhraseQuery(attribute: String, value: String, topK: Integer) extends Filter {
+  override def references: Array[String] = Array(attribute)
+}
+
+case class PrefixQuery(attribute: String, value: String, topK: Integer) extends Filter {
+  override def references: Array[String] = Array(attribute)
+}
+
+case class Query(value: String, topK: Integer) extends Filter {
+  override def references: Array[String] = Array()
+}

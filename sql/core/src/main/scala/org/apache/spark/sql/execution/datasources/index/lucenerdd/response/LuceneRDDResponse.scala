@@ -35,6 +35,8 @@ private[lucenerdd] class LuceneRDDResponse
   @DeveloperApi
   override def compute(split: Partition, context: TaskContext)
   : Iterator[SparkScoreDoc] = {
+    // Every partition has just one LuceneRDDResponsePartition data structure
+    // so, we need to use next() to extract the first(the only) one.
     firstParent[LuceneRDDResponsePartition].iterator(split, context).next().iterator()
   }
 

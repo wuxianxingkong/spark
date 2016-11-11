@@ -583,6 +583,28 @@ object DataSourceStrategy extends Strategy with Logging {
       case expressions.Contains(a: Attribute, Literal(v: UTF8String, StringType)) =>
         Some(sources.StringContains(a.name, v.toString))
 
+      case expressions.TermQuery(Literal(field: UTF8String, StringType),
+        Literal(query: UTF8String, StringType), Literal(topK: UTF8String, StringType)) =>
+        Some(sources.TermQuery(field.toString, query.toString, Integer.valueOf(topK.toString)))
+
+      case expressions.FuzzyQuery(Literal(field: UTF8String, StringType),
+      Literal(query: UTF8String, StringType),
+      Literal(maxEdits: UTF8String, StringType), Literal(topK: UTF8String, StringType)) =>
+        Some(sources.FuzzyQuery(field.toString, query.toString,
+          Integer.valueOf(maxEdits.toString), Integer.valueOf(topK.toString)))
+
+      case expressions.PhraseQuery(Literal(field: UTF8String, StringType),
+      Literal(query: UTF8String, StringType), Literal(topK: UTF8String, StringType)) =>
+        Some(sources.PhraseQuery(field.toString, query.toString, Integer.valueOf(topK.toString)))
+
+      case expressions.PrefixQuery(Literal(field: UTF8String, StringType),
+      Literal(query: UTF8String, StringType), Literal(topK: UTF8String, StringType)) =>
+        Some(sources.PrefixQuery(field.toString, query.toString, Integer.valueOf(topK.toString)))
+
+      case expressions.ComplexQuery(Literal(query: UTF8String, StringType),
+      Literal(topK: UTF8String, StringType)) =>
+        Some(sources.ComplexQuery(query.toString, Integer.valueOf(topK.toString)))
+
       case _ => None
     }
   }

@@ -334,6 +334,11 @@ object LikeSimplification extends Rule[LogicalPlan] {
   }
 }
 
+// object FullTextQuerySimplification extends Rule[LogicalPlan] {
+//  def apply(plan: LogicalPlan): LogicalPlan = plan transformAllExpressions {
+//    case TermQuery(Literal())
+//  }
+// }
 
 /**
  * Replaces [[Expression Expressions]] that can be statically evaluated with
