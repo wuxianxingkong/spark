@@ -426,15 +426,34 @@ object LuceneRDD {
       val indexSearcher = new IndexSearcher(indexReader)
       val allFields = indexSearcher.search(new MatchAllDocsQuery(), 1).scoreDocs.flatMap(x =>
         indexSearcher.getIndexReader.document(x.doc).getFields.asScala
-      ).map(field => field match {
-        case a: IntField => StructField(a.name, IntegerType, true)
-        case b: LongField => StructField(b.name, LongType, true)
-        case c: FloatField => StructField(c.name, FloatType, true)
-        case d: DoubleField => StructField(d.name, DoubleType, true)
-        case e: TextField => StructField(e.name, StringType, true)
-        case _ => StructField(field.name, StringType, true)
-      })
-      new StructType(allFields)
+      ).map(field =>
+        if (field.numericValue() != null) {
+          val number = field.numericValue()
+//          val intv = number.intValue() + ""
+//          val intl = number.longValue() + ""
+//          val intf = number.floatValue() + ""
+//          val intd = number.doubleValue() + ""
+          number match {
+            case a: Integer => StructField(field.name, IntegerType, true)
+            case b: java.lang.Long => StructField(field.name, LongType, true)
+            case c: java.lang.Float => StructField(field.name, FloatType, true)
+            case d: java.lang.Double => StructField(field.name, DoubleType, true)
+          }
+        } else {
+          StructField(field.name, StringType, true)
+        }
+//        field match {
+//        case a: IntField => StructField(a.name, IntegerType, true)
+//        case b: LongField => StructField(b.name, LongType, true)
+//        case c: FloatField => StructField(c.name, FloatType, true)
+//        case d: DoubleField => StructField(d.name, DoubleType, true)
+//        case e: TextField => StructField(e.name, StringType, true)
+//        case _ => StructField(field.name, StringType, true)}
+      )
+      val originSchema = new StructType(allFields)
+      StructType(Seq(StructField("docId", IntegerType, true),
+        StructField("shardIndex", IntegerType, true),
+        StructField("score", FloatType, true)) ++ originSchema.fields)
     } else {
       sys.error(s"${tableName} isn't exist")
       new StructType(Array[StructField]())

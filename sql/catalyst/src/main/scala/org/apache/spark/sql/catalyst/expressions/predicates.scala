@@ -535,3 +535,196 @@ case class GreaterThanOrEqual(left: Expression, right: Expression)
 
   protected override def nullSafeEval(input1: Any, input2: Any): Any = ordering.gteq(input1, input2)
 }
+
+case class TermQuery(left: Expression, right: Expression, topK: Expression)
+  extends Expression{
+
+  override def toString: String = s"[*Term* field:$left, query:$right, topK:$topK]"
+
+  override def children: Seq[Expression] = Seq(left, right, topK)
+
+  override def nullable: Boolean = false
+
+  override def dataType: DataType = BooleanType
+
+  /** Returns the result of evaluating this expression on a given input Row */
+  override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
+
+  /**
+   * Returns Java source code that can be compiled to evaluate this expression.
+   * The default behavior is to call the eval method of the expression. Concrete expression
+   * implementations should override this to do actual code generation.
+   *
+   * @param ctx a [[CodegenContext]]
+   * @param ev  an [[ExprCode]] with unique terms.
+   * @return an [[ExprCode]] containing the Java source code to generate the given expression
+   */
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val leftGen = left.genCode(ctx)
+    val rightGen = right.genCode(ctx)
+    val another = topK.genCode(ctx)
+    val resultCode = ev.value
+
+    ev.copy(code = s"""
+      boolean ${ev.isNull} = false;
+      ${leftGen.code}
+      ${rightGen.code}
+      ${another.code}
+      ${ctx.javaType(dataType)} ${ev.value} = ${ctx.defaultValue(dataType)};
+      $resultCode = true;""", isNull = "false")
+  }
+}
+
+case class FuzzyQuery(left: Expression, right: Expression, maxEdits: Expression, topK: Expression)
+  extends Expression {
+
+  override def toString: String = s"[*Fuzzy* field:$left, query:$right, topK:$topK]"
+
+  override def children: Seq[Expression] = Seq(left, right)
+
+  override def nullable: Boolean = false
+
+  override def dataType: DataType = BooleanType
+
+  /** Returns the result of evaluating this expression on a given input Row */
+  override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
+
+  /**
+    * Returns Java source code that can be compiled to evaluate this expression.
+    * The default behavior is to call the eval method of the expression. Concrete expression
+    * implementations should override this to do actual code generation.
+    *
+    * @param ctx a [[CodegenContext]]
+    * @param ev  an [[ExprCode]] with unique terms.
+    * @return an [[ExprCode]] containing the Java source code to generate the given expression
+    */
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val leftGen = left.genCode(ctx)
+    val rightGen = right.genCode(ctx)
+    val another = topK.genCode(ctx)
+    val resultCode = ev.value
+
+    ev.copy(code = s"""
+      boolean ${ev.isNull} = false;
+      ${leftGen.code}
+      ${rightGen.code}
+      ${another.code}
+      ${ctx.javaType(dataType)} ${ev.value} = ${ctx.defaultValue(dataType)};
+      $resultCode = true;""", isNull = "false")
+  }
+}
+
+case class PhraseQuery(left: Expression, right: Expression, topK: Expression)
+  extends Expression {
+
+  override def toString: String = s"[*Phrase* field:$left, query:$right, topK:$topK]"
+
+  override def children: Seq[Expression] = Seq(left, right)
+
+  override def nullable: Boolean = false
+
+  override def dataType: DataType = BooleanType
+
+  /** Returns the result of evaluating this expression on a given input Row */
+  override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
+
+  /**
+    * Returns Java source code that can be compiled to evaluate this expression.
+    * The default behavior is to call the eval method of the expression. Concrete expression
+    * implementations should override this to do actual code generation.
+    *
+    * @param ctx a [[CodegenContext]]
+    * @param ev  an [[ExprCode]] with unique terms.
+    * @return an [[ExprCode]] containing the Java source code to generate the given expression
+    */
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val leftGen = left.genCode(ctx)
+    val rightGen = right.genCode(ctx)
+    val another = topK.genCode(ctx)
+    val resultCode = ev.value
+
+    ev.copy(code = s"""
+      boolean ${ev.isNull} = false;
+      ${leftGen.code}
+      ${rightGen.code}
+      ${another.code}
+      ${ctx.javaType(dataType)} ${ev.value} = ${ctx.defaultValue(dataType)};
+      $resultCode = true;""", isNull = "false")
+  }
+}
+
+case class PrefixQuery(left: Expression, right: Expression, topK: Expression)
+  extends Expression {
+
+  override def toString: String = s"[*Prefix* field:$left, query:$right, topK:$topK]"
+
+  override def children: Seq[Expression] = Seq(left, right)
+
+  override def nullable: Boolean = false
+
+  override def dataType: DataType = BooleanType
+
+  /** Returns the result of evaluating this expression on a given input Row */
+  override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
+
+  /**
+    * Returns Java source code that can be compiled to evaluate this expression.
+    * The default behavior is to call the eval method of the expression. Concrete expression
+    * implementations should override this to do actual code generation.
+    *
+    * @param ctx a [[CodegenContext]]
+    * @param ev  an [[ExprCode]] with unique terms.
+    * @return an [[ExprCode]] containing the Java source code to generate the given expression
+    */
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val leftGen = left.genCode(ctx)
+    val rightGen = right.genCode(ctx)
+    val another = topK.genCode(ctx)
+    val resultCode = ev.value
+
+    ev.copy(code = s"""
+      boolean ${ev.isNull} = false;
+      ${leftGen.code}
+      ${rightGen.code}
+      ${another.code}
+      ${ctx.javaType(dataType)} ${ev.value} = ${ctx.defaultValue(dataType)};
+      $resultCode = true;""", isNull = "false")
+  }
+}
+
+case class ComplexQuery(left: Expression, right: Expression)
+  extends Expression {
+
+  override def toString: String = s"[*Complex* query:$left, topK:$right]"
+
+  override def children: Seq[Expression] = left :: right :: Nil
+
+  override def nullable: Boolean = false
+
+  override def dataType: DataType = BooleanType
+
+  /** Returns the result of evaluating this expression on a given input Row */
+  override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
+
+  /**
+    * Returns Java source code that can be compiled to evaluate this expression.
+    * The default behavior is to call the eval method of the expression. Concrete expression
+    * implementations should override this to do actual code generation.
+    *
+    * @param ctx a [[CodegenContext]]
+    * @param ev  an [[ExprCode]] with unique terms.
+    * @return an [[ExprCode]] containing the Java source code to generate the given expression
+    */
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val leftGen = left.genCode(ctx)
+    val rightGen = right.genCode(ctx)
+    val resultCode = ev.value
+
+    ev.copy(code = s"""
+      boolean ${ev.isNull} = false;
+      ${leftGen.code}
+      ${rightGen.code}
+      ${ctx.javaType(dataType)} ${ev.value} = ${ctx.defaultValue(dataType)};
+      $resultCode = true;""", isNull = "false")
+  }
+}
