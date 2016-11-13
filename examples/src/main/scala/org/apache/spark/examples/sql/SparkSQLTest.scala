@@ -171,15 +171,24 @@ object SparkSQLTest {
   private def test13(sparkSession: SparkSession) : Unit={
     val df = sparkSession.read.json("examples/src/main/resources1/")
     df.createOrReplaceTempView("test1")
+    df.printSchema()
     sparkSession.sql("select * from test1").show()
     sparkSession.sql("drop table if exists index_test_13")
     val df1=sparkSession.sql("create index index_test_13 on table test1 (name) using org.apache.spark.sql.index")
     df1.explain(true)
     val df2 = sparkSession.sql("select * from index_test_1 where termquery('name','justin','1')")
+    //df2.explain(true)
     df2.show()
-    sparkSession.sql("describe extended test1").show()
-    sparkSession.sql("describe extended index_test_13").show()
+//    sparkSession.sql("describe extended test1").show()
+//    sparkSession.sql("describe extended index_test_13").show()
 
+  }
+  private def test14(sparkSession: SparkSession) : Unit={
+    val df = sparkSession.read.json("examples/src/main/resources1/")
+    df.createOrReplaceTempView("test1")
+    val df1 = sparkSession.sql("select age from test1 where age between 1 and 30")
+    df1.explain(true)
+    df1.show()
   }
 }
 case class FavoriteCaseClass(name: String, age: Int, myLong: Long, myFloat: Float, email: String)
