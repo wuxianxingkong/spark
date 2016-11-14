@@ -56,19 +56,21 @@ private[lucenerdd] abstract class AbstractLuceneRDDPartition[T] extends Serializ
 
   /**
    * Generic Lucene Query using QueryParser
+   * @param defaultField Default query field
    * @param searchString Lucene query string, i.e., textField:hello*
    * @param topK Number of documents to return
    * @return
    */
-  def query(searchString: String, topK: Int): LuceneRDDResponsePartition
+  def query(defaultField: String, searchString: String, topK: Int): LuceneRDDResponsePartition
 
   /**
    * Multiple generic Lucene Queries using QueryParser
+   * @param defaultField Default query field
    * @param searchString  Lucene query string
    * @param topK Number of results to return
    * @return
    */
-  def queries(searchString: Iterable[String], topK: Int)
+  def queries(defaultField: String, searchString: Iterable[String], topK: Int)
   : Iterable[(String, LuceneRDDResponsePartition)]
 
   /**

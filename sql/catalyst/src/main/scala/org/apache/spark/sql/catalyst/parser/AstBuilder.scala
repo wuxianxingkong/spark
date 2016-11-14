@@ -950,7 +950,7 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
       case SqlBaseParser.PREFIXQUERY =>
         PrefixQuery(expression(ctx.field), expression(ctx.queryString), expression(ctx.topK))
       case SqlBaseParser.COMPLEXQUERY =>
-        ComplexQuery(expression(ctx.queryString), expression(ctx.topK))
+        ComplexQuery(expression(ctx.field), expression(ctx.queryString), expression(ctx.topK))
       case _ => null
     }
 

@@ -135,10 +135,10 @@ object SparkSQLTest {
   }
   private def test10(sparkSession: SparkSession) : Unit={
     // test index with specified columns
-    val df = sparkSession.read.json("examples/src/main/resources1/")
+    val df = sparkSession.read.json("examples/src/main/resources3/")
     df.printSchema()
-    val luceneRDD = LuceneRDD(df,"test_test_1",Seq[String]("age"))
-    val results = luceneRDD.termQuery("age", "30")
+    val luceneRDD = LuceneRDD(df,"test_test_1",Seq[String]("name"))
+    val results = luceneRDD.query("name", "just~")
     println("Result nums: " + results.count())
     results.foreach(println)
     // lucene中不论用什么方法索引数字类型，都无法使用termquery搜索到
@@ -169,14 +169,14 @@ object SparkSQLTest {
     // 结论：没有帮助
   }
   private def test13(sparkSession: SparkSession) : Unit={
-    val df = sparkSession.read.json("examples/src/main/resources1/")
+    val df = sparkSession.read.json("examples/src/main/resources3/")
     df.createOrReplaceTempView("test1")
     df.printSchema()
     sparkSession.sql("select * from test1").show()
     sparkSession.sql("drop table if exists index_test_13")
     val df1=sparkSession.sql("create index index_test_13 on table test1 (name) using org.apache.spark.sql.index")
     df1.explain(true)
-    val df2 = sparkSession.sql("select * from index_test_1 where termquery('name','justin','1')")
+    val df2 = sparkSession.sql("select * from index_test_13 where complexQuery('name','just~','3')")
     //df2.explain(true)
     df2.show()
 //    sparkSession.sql("describe extended test1").show()

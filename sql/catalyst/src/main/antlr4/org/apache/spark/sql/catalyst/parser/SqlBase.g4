@@ -484,11 +484,11 @@ predicated
     : valueExpression predicate?
     ;
 
+// | operator=COMPLEXQUERY '(' queryString=valueExpression ',' topK=valueExpression ')'        #complexQuery
 fulltextquery
-    :operator=(TERMQUERY|FUZZYQUERY|PHRASEQUERY|PREFIXQUERY)
+    :operator=(TERMQUERY|FUZZYQUERY|PHRASEQUERY|PREFIXQUERY|COMPLEXQUERY)
          '(' (field=valueExpression ',')? queryString=valueExpression ',' (maxEdits=valueExpression ',')?
           topK=valueExpression ')' #fieldQuery
-    | operator=COMPLEXQUERY '(' queryString=valueExpression ',' topK=valueExpression ')'        #complexQuery
     ;
 
 predicate

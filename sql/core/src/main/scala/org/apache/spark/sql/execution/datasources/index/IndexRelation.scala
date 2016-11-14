@@ -71,9 +71,9 @@ case class IndexRelation(
       case PrefixQuery(fieldName, query, topK) =>
         LuceneRDD(sparkSession, tableName).prefixQuery(
           fieldName, query, Integer.valueOf(topK))
-      case ComplexQuery(query, topK) =>
+      case ComplexQuery(defaultFieldName, query, topK) =>
         LuceneRDD(sparkSession, tableName).query(
-          query, Integer.valueOf(topK))
+          defaultFieldName, query, Integer.valueOf(topK))
       case _ => throw new
           UnsupportedOperationException(s"Cannot support other filter: $this")
     }

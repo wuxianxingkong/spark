@@ -121,7 +121,7 @@ private[shape] class ShapeLuceneRDDPartition[K, V]
     LuceneRDDResponsePartition(docs.scoreDocs.map(SparkScoreDoc(indexSearcher, _)).toIterator)
   }
 
-  override def knnSearch(point: PointType, k: Int, searchString: String)
+  override def knnSearch(point: PointType, defaultField: String, k: Int, searchString: String)
   : LuceneRDDResponsePartition = {
     logInfo(s"knnSearch [center:${point}, searchQuery:${searchString}]")
 
@@ -134,7 +134,7 @@ private[shape] class ShapeLuceneRDDPartition[K, V]
     // false = ascending dist
     val distSort = new Sort(valueSource.getSortField(false)).rewrite(indexSearcher)
 
-    val query = LuceneQueryHelpers.parseQueryString(searchString)(Analyzer)
+    val query = LuceneQueryHelpers.parseQueryString(defaultField, searchString)(Analyzer)
     val docs = indexSearcher.search(query, k, distSort)
 
     // Here we sorted on it, and the distance will get

@@ -38,11 +38,13 @@ private[shape] abstract class AbstractShapeLuceneRDDPartition[K, V] extends Seri
    * Nearest neighbour search
    *
    * @param point query point
+   * @param defaultField defaultField
    * @param k number of neighbors to return
    * @param searchString Lucene Query string
    * @return
    */
-  def knnSearch(point: PointType, k: Int, searchString: String): LuceneRDDResponsePartition
+  def knnSearch(point: PointType, defaultField: String,
+        k: Int, searchString: String): LuceneRDDResponsePartition
 
   /**
    * Search for points within a circle

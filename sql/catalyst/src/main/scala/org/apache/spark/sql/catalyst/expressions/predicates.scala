@@ -575,7 +575,7 @@ case class FuzzyQuery(left: Expression, right: Expression, maxEdits: Expression,
 
   override def toString: String = s"[*Fuzzy* field:$left, query:$right, topK:$topK]"
 
-  override def children: Seq[Expression] = Seq(left, right)
+  override def children: Seq[Expression] = Seq(left, right, maxEdits, topK)
 
   override def nullable: Boolean = false
 
@@ -597,6 +597,7 @@ case class FuzzyQuery(left: Expression, right: Expression, maxEdits: Expression,
     val leftGen = left.genCode(ctx)
     val rightGen = right.genCode(ctx)
     val another = topK.genCode(ctx)
+    val another1 = maxEdits.genCode(ctx)
     val resultCode = ev.value
 
     ev.copy(code = s"""
@@ -604,6 +605,7 @@ case class FuzzyQuery(left: Expression, right: Expression, maxEdits: Expression,
       ${leftGen.code}
       ${rightGen.code}
       ${another.code}
+      ${another1.code}
       ${ctx.javaType(dataType)} ${ev.value} = ${ctx.defaultValue(dataType)};
       $resultCode = true;""", isNull = "false")
   }
@@ -614,7 +616,7 @@ case class PhraseQuery(left: Expression, right: Expression, topK: Expression)
 
   override def toString: String = s"[*Phrase* field:$left, query:$right, topK:$topK]"
 
-  override def children: Seq[Expression] = Seq(left, right)
+  override def children: Seq[Expression] = Seq(left, right, topK)
 
   override def nullable: Boolean = false
 
@@ -653,7 +655,7 @@ case class PrefixQuery(left: Expression, right: Expression, topK: Expression)
 
   override def toString: String = s"[*Prefix* field:$left, query:$right, topK:$topK]"
 
-  override def children: Seq[Expression] = Seq(left, right)
+  override def children: Seq[Expression] = Seq(left, right, topK)
 
   override def nullable: Boolean = false
 
@@ -687,12 +689,12 @@ case class PrefixQuery(left: Expression, right: Expression, topK: Expression)
   }
 }
 
-case class ComplexQuery(left: Expression, right: Expression)
+case class ComplexQuery(left: Expression, right: Expression, topK: Expression)
   extends Expression {
 
-  override def toString: String = s"[*Complex* query:$left, topK:$right]"
+  override def toString: String = s"[*Prefix* field:$left, query:$right, topK:$topK]"
 
-  override def children: Seq[Expression] = left :: right :: Nil
+  override def children: Seq[Expression] = Seq(left, right, topK)
 
   override def nullable: Boolean = false
 
@@ -713,12 +715,14 @@ case class ComplexQuery(left: Expression, right: Expression)
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val leftGen = left.genCode(ctx)
     val rightGen = right.genCode(ctx)
+    val another = topK.genCode(ctx)
     val resultCode = ev.value
 
     ev.copy(code = s"""
       boolean ${ev.isNull} = false;
       ${leftGen.code}
       ${rightGen.code}
+      ${another.code}
       ${ctx.javaType(dataType)} ${ev.value} = ${ctx.defaultValue(dataType)};
       $resultCode = true;""", isNull = "false")
   }
