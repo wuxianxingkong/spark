@@ -28,7 +28,7 @@ import scala.collection.JavaConverters._
  *
  * @param doc Lucene document
  */
-case class SparkDoc(doc: Document) extends Serializable {
+case class SparkDoc(@transient doc: Document) {
 
   private val stringFields: Map[String, String] = doc.getFields().asScala.flatMap( field =>
     if (field.stringValue() != null && field.name() != null) {
@@ -82,8 +82,8 @@ case class SparkDoc(doc: Document) extends Serializable {
   }
 }
 
-//object SparkDoc extends Serializable {
-//  def apply(doc: Document): SparkDoc = {
-//    new SparkDoc(doc)
+//  object SparkDoc extends Serializable {
+//    def apply(doc: Document): SparkDoc = {
+//      new SparkDoc(doc)
+//    }
 //  }
-//}
