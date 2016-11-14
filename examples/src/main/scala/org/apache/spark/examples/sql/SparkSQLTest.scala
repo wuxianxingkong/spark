@@ -129,9 +129,9 @@ object SparkSQLTest {
   }
   private def test9(sparkSession: SparkSession) : Unit={
     val tableName = "test_test_1"
-    val results = LuceneRDD(sparkSession, tableName).termQuery("name", "water")
+    val results = LuceneRDD(sparkSession, tableName).query("name", "just~")
     println(results.count)
-    results.foreach(println)
+    results.take(5).foreach(println)
   }
   private def test10(sparkSession: SparkSession) : Unit={
     // test index with specified columns
@@ -176,8 +176,8 @@ object SparkSQLTest {
     sparkSession.sql("drop table if exists index_test_13")
     val df1=sparkSession.sql("create index index_test_13 on table test1 (name) using org.apache.spark.sql.index")
     df1.explain(true)
-    val df2 = sparkSession.sql("select * from index_test_13 where complexQuery('name','just~','3')")
-    //df2.explain(true)
+    val df2 = sparkSession.sql("select * from index_test_13 where complexQuery('name','i just like it','3')")
+    df2.explain(true)
     df2.show()
 //    sparkSession.sql("describe extended test1").show()
 //    sparkSession.sql("describe extended index_test_13").show()
@@ -189,6 +189,12 @@ object SparkSQLTest {
     val df1 = sparkSession.sql("select age from test1 where age between 1 and 30")
     df1.explain(true)
     df1.show()
+  }
+  private def test15(sparkSession: SparkSession) : Unit={
+    val df2 = sparkSession.sql("select * from index_test_13 where complexQuery('name','just~','3')")
+    //df2.explain(true)
+    df2.show()
+    // Reading from existed index: Right
   }
 }
 case class FavoriteCaseClass(name: String, age: Int, myLong: Long, myFloat: Float, email: String)
