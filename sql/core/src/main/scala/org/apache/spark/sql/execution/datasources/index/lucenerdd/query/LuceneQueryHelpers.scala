@@ -84,9 +84,10 @@ object LuceneQueryHelpers extends Serializable {
    * @param analyzer
    * @return
    */
-  def parseQueryString(searchString: String)
+  def parseQueryString(defaultField: String, searchString: String)
                       (implicit analyzer: Analyzer): Query = {
-    val queryParser = new QueryParser(QueryParserDefaultField, analyzer)
+    // QueryParserDefaultField -> defaultField
+    val queryParser = new QueryParser(defaultField, analyzer)
 
     // See http://goo.gl/L8sbrB
     if (analyzer.getClass.getCanonicalName.toLowerCase().contains("whitespace")) {
@@ -105,10 +106,11 @@ object LuceneQueryHelpers extends Serializable {
    * @return
    */
   def searchParser(indexSearcher: IndexSearcher,
+                   defaultField: String,
                    searchString: String,
                    topK: Int)(implicit analyzer: Analyzer)
   : Seq[SparkScoreDoc] = {
-    val q = parseQueryString(searchString)(analyzer)
+    val q = parseQueryString(defaultField, searchString)(analyzer)
     indexSearcher.search(q, topK).scoreDocs.map(SparkScoreDoc(indexSearcher, _))
   }
 

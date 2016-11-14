@@ -134,11 +134,11 @@ class ShapeLuceneRDD[K: ClassTag, V: ClassTag]
    * broadcast to the workers.
    */
   def linkByKnn[T: ClassTag](that: RDD[T], pointFunctor: T => PointType,
-                           topK: Int = DefaultTopK)
+        defaultField: String, topK: Int = DefaultTopK)
   : RDD[(T, List[SparkScoreDoc])] = {
     logInfo("linkByKnn requested")
     linker[T](that, pointFunctor, (queryPoint, part) =>
-      part.knnSearch(queryPoint, topK, LuceneQueryHelpers.MatchAllDocsString))
+      part.knnSearch(queryPoint, defaultField, topK, LuceneQueryHelpers.MatchAllDocsString))
   }
 
   /**
@@ -175,10 +175,10 @@ class ShapeLuceneRDD[K: ClassTag, V: ClassTag]
    * @return
    */
   def linkDataFrameByKnn(other: DataFrame, searchQueryGen: Row => PointType,
-                         topK: Int = DefaultTopK)
+        defaultField: String, topK: Int = DefaultTopK)
   : RDD[(Row, List[SparkScoreDoc])] = {
     logInfo("linkDataFrameByKnn requested")
-    linkByKnn[Row](other.rdd, searchQueryGen, topK)
+    linkByKnn[Row](other.rdd, searchQueryGen, defaultField, topK)
   }
 
   /**
@@ -209,11 +209,11 @@ class ShapeLuceneRDD[K: ClassTag, V: ClassTag]
    * @param searchString Lucene query string
    * @return
    */
-  def knnSearch(queryPoint: PointType, k: Int,
+  def knnSearch(queryPoint: PointType, k: Int, defaultField: String,
                 searchString: String = LuceneQueryHelpers.MatchAllDocsString)
   : LuceneRDDResponse = {
     logInfo(s"Knn search with query ${queryPoint} and search string ${searchString}")
-    partitionMapper(_.knnSearch(queryPoint, k, searchString))
+    partitionMapper(_.knnSearch(queryPoint, defaultField, k, searchString))
   }
 
   /**
