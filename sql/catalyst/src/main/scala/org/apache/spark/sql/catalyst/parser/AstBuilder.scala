@@ -923,7 +923,7 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
   }
 
   override def visitFieldQuery(ctx: FieldQueryContext): Expression = withOrigin(ctx) {
-    ctx.operator.getType match {
+    val withFieldQuery = ctx.operator.getType match {
       case SqlBaseParser.TERMQUERY =>
         TermQuery(expression(ctx.field), expression(ctx.queryString), expression(ctx.topK))
       case SqlBaseParser.FUZZYQUERY =>
@@ -939,6 +939,13 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
       case _ => null
     }
 
+//    val withSort = Sort(Seq(SortOrder(UnresolvedAttribute.quoted("score"),
+//      Descending)), global = true, withFieldQuery)
+//    // LIMIT
+//    withSort.optional(ctx.topK) {
+//      Limit(typedVisit(ctx.topK), withSort)
+//    }
+    withFieldQuery
   }
 
   /**

@@ -20,17 +20,23 @@ import java.util.Properties
 
 import org.apache.lucene.index.IndexableField
 import org.apache.spark.internal.Logging
-import org.apache.spark.Partition
+import org.apache.spark._
 import org.apache.spark.rdd.RDD
+import org.apache.spark.serializer.Serializer
+import org.apache.spark.shuffle.sort.SortShuffleManager
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{MutableRow, SpecificMutableRow}
+import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, Descending, MutableRow, SortOrder, SpecificMutableRow, UnsafeProjection}
+import org.apache.spark.sql.catalyst.plans.physical.{Partitioning, SinglePartition}
+import org.apache.spark.sql.execution.{PartitionIdPassthrough, ShuffledRowRDD, UnsafeRowSerializer}
 import org.apache.spark.sql.execution.datasources.index.lucenerdd._
 import org.apache.spark.sql.execution.datasources.index.lucenerdd.models.SparkScoreDoc
+import org.apache.spark.sql.execution.exchange.ShuffleExchange
 import org.apache.spark.sql.{DataFrame, Row, SQLContext, SparkSession}
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-import org.apache.spark.util.{CompletionIterator, NextIterator}
+import org.apache.spark.util.{BoundedPriorityQueue, CompletionIterator, MutablePair, NextIterator}
 
 
 case class IndexRelation(
@@ -52,26 +58,31 @@ case class IndexRelation(
     logInfo(s"Schema is $struct")
     struct
   }
-
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
     logInfo(s"User SpecifiedSchema: $userSpecifiedSchema")
     logInfo("Print filters..." + filters.map(filter => filter.toString).mkString(","))
     // There is just on filter
     val filter = filters(0)
+    var globalTopK = 0
     val midResult = filter match {
       case TermQuery(fieldName, query, topK) =>
+        globalTopK = topK
         LuceneRDD(sparkSession, tableName).termQuery(
           fieldName, query, Integer.valueOf(topK))
       case FuzzyQuery(fieldName, query, maxEdits, topK) =>
+        globalTopK = topK
         LuceneRDD(sparkSession, tableName).fuzzyQuery(
           fieldName, query, maxEdits, Integer.valueOf(topK))
       case PhraseQuery(fieldName, query, topK) =>
+        globalTopK = topK
         LuceneRDD(sparkSession, tableName).phraseQuery(
           fieldName, query, Integer.valueOf(topK))
       case PrefixQuery(fieldName, query, topK) =>
+        globalTopK = topK
         LuceneRDD(sparkSession, tableName).prefixQuery(
           fieldName, query, Integer.valueOf(topK))
       case ComplexQuery(defaultFieldName, query, topK) =>
+        globalTopK = topK
         LuceneRDD(sparkSession, tableName).query(
           defaultFieldName, query, Integer.valueOf(topK))
       case _ => throw new
@@ -81,10 +92,93 @@ case class IndexRelation(
     // will lose sparkSession value when executed in executor.
     // So, we save schema to executorSchema
     val executorSchema = schema
-    midResult.mapPartitions[InternalRow](iterator =>
-      sparkScoreDocsToSparkInternalRows(iterator, executorSchema), true).asInstanceOf[RDD[Row]]
+    // Local topK
+    val partitionResult = midResult.mapPartitions[InternalRow](iterator =>
+      sparkScoreDocsToSparkInternalRows(iterator, executorSchema)
+    )
+    // Global topK
+    val shuffled = new ShuffledRowRDD(
+      prepareShuffleDependency(partitionResult, SinglePartition))
+    val finalresult = shuffled.mapPartitions { iter =>
+      val topK = org.apache.spark.util.collection.Utils.takeOrdered(
+      iter.map(_.copy()), globalTopK)(descending)
+      topK
+    }
+//    println("size:"+shuffled.partitions.size)
+//    shuffled.foreach(println)
+//    partitionResult.asInstanceOf[RDD[Row]]
+    finalresult.asInstanceOf[RDD[Row]]
+  }
+  /**
+    * Ordering by score (descending)
+    */
+  def descending: Ordering[InternalRow] = new Ordering[InternalRow]{
+    override def compare(x: InternalRow, y: InternalRow): Int = {
+      val left: Float = x.getFloat(2)
+      val right: Float = y.getFloat(2)
+      -left.compareTo(right)
+    }
   }
 
+  private def needToCopyObjectsBeforeShuffle(
+                                              partitioner: Partitioner,
+                                              serializer: Serializer): Boolean = {
+    // Note: even though we only use the partitioner's `numPartitions` field, we require it to be
+    // passed instead of directly passing the number of partitions in order to guard against
+    // corner-cases where a partitioner constructed with `numPartitions` partitions may output
+    // fewer partitions (like RangePartitioner, for example).
+    val conf = SparkEnv.get.conf
+    val shuffleManager = SparkEnv.get.shuffleManager
+    val sortBasedShuffleOn = shuffleManager.isInstanceOf[SortShuffleManager]
+    val bypassMergeThreshold = conf.getInt("spark.shuffle.sort.bypassMergeThreshold", 200)
+    if (sortBasedShuffleOn) {
+      val bypassIsSupported = SparkEnv.get.shuffleManager.isInstanceOf[SortShuffleManager]
+      if (bypassIsSupported && partitioner.numPartitions <= bypassMergeThreshold) {
+        // If we're using the original SortShuffleManager and the number of output partitions is
+        // sufficiently small, then Spark will fall back to the hash-based shuffle write path, which
+        // doesn't buffer deserialized records.
+        // Note that we'll have to remove this case if we fix SPARK-6026 and remove this bypass.
+        false
+      } else if (serializer.supportsRelocationOfSerializedObjects) {
+        // SPARK-4550 and  SPARK-7081 extended sort-based shuffle to serialize individual records
+        // prior to sorting them. This optimization is only applied in cases where shuffle
+        // dependency does not specify an aggregator or ordering and the record serializer has
+        // certain properties. If this optimization is enabled, we can safely avoid the copy.
+        //
+        // Exchange never configures its ShuffledRDDs with aggregators or key orderings, so we only
+        // need to check whether the optimization is enabled and supported by our serializer.
+        false
+      } else {
+        // Spark's SortShuffleManager uses `ExternalSorter` to buffer records in memory, so we must
+        // copy.
+        true
+      }
+    } else {
+      // Catch-all case to safely handle any future ShuffleManager implementations.
+      true
+    }
+  }
+  def prepareShuffleDependency(rdd: RDD[InternalRow],
+        newPartitioning: Partitioning): ShuffleDependency[Int, InternalRow, InternalRow] = {
+//    val serializer: Serializer = new UnsafeRowSerializer(onceSchema.fields.size)
+    val part: Partitioner = new Partitioner {
+      override def numPartitions: Int = 1
+      override def getPartition(key: Any): Int = 0
+    }
+    def getPartitionKeyExtractor(): InternalRow => Any = identity
+    val rddWithPartitionIds: RDD[Product2[Int, InternalRow]] = {
+      rdd.mapPartitionsInternal { iter =>
+        val getPartitionKey = getPartitionKeyExtractor()
+        iter.map { row => (part.getPartition(getPartitionKey(row)), row.copy()) }
+      }
+    }
+    val dependency =
+      new ShuffleDependency[Int, InternalRow, InternalRow](
+        rddWithPartitionIds,
+        new PartitionIdPassthrough(part.numPartitions))
+
+    dependency
+  }
   private type IndexValueGetter = (IndexableField, MutableRow, Int) => Unit
 
   private def makeGetters(schema: StructType): Array[IndexValueGetter] =
