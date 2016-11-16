@@ -43,21 +43,7 @@ object SparkSQLTest {
   case class Person(name: String, age: Long)
   // $example off:create_ds$
 
-  def main(args: Array[String]) {
-    // $example on:init_session$
-    val spark = SparkSession
-      .builder().master("local")
-      .appName("Spark SQL basic example")
-      .enableHiveSupport()
-      .getOrCreate()       //.config("spark.some.config.option", "some-value")
 
-    // For implicit conversions like converting RDDs to DataFrames
-    // $example off:init_session$
-    println(spark.conf.getAll)
-    test13(spark)
-//    test10(spark)
-    spark.stop()
-  }
   private def test1(sparkSession: SparkSession) : Unit={
     val df = sparkSession.read.json("examples/src/main/resources1/")
     df.createOrReplaceTempView("test1")
@@ -195,6 +181,33 @@ object SparkSQLTest {
     //df2.explain(true)
     df2.show()
     // Reading from existed index: Right
+  }
+  private def test16(sparkSession: SparkSession) : Unit={
+    val df = sparkSession.read.json("examples/src/main/resources3/")
+    df.createOrReplaceTempView("test1")
+    val df1 = sparkSession.sql("select * from test1 where name like 'jus%' order by name limit 2")
+    df1.explain(true)
+    df1.show()
+  }
+  private def test17(sparkSession: SparkSession) : Unit={
+    val array = Array(3,7,2,1,9)
+    sparkSession.sparkContext.parallelize(array,2).foreach(println)
+    sparkSession.sparkContext.parallelize(array,2).collect.foreach(println)
+  }
+  def main(args: Array[String]) {
+    // $example on:init_session$
+    val spark = SparkSession
+      .builder().master("local")
+      .appName("Spark SQL basic example")
+      .enableHiveSupport()
+      .getOrCreate()       //.config("spark.some.config.option", "some-value")
+
+    // For implicit conversions like converting RDDs to DataFrames
+    // $example off:init_session$
+    println(spark.conf.getAll)
+    test15(spark)
+    //    test10(spark)
+    spark.stop()
   }
 }
 case class FavoriteCaseClass(name: String, age: Int, myLong: Long, myFloat: Float, email: String)
