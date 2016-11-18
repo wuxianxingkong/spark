@@ -949,8 +949,8 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
         PhraseQuery(expression(ctx.field), expression(ctx.queryString), expression(ctx.topK))
       case SqlBaseParser.PREFIXQUERY =>
         PrefixQuery(expression(ctx.field), expression(ctx.queryString), expression(ctx.topK))
-      case SqlBaseParser.COMPLEXQUERY =>
-        ComplexQuery(expression(ctx.field), expression(ctx.queryString), expression(ctx.topK))
+      case SqlBaseParser.QUERYPARSER =>
+        org.apache.spark.sql.catalyst.expressions.QUERYPARSER(expression(ctx.field), expression(ctx.queryString), expression(ctx.topK))
       case _ => null
     }
 

@@ -238,7 +238,7 @@ case class CreateDataSourceTableAsSelectCommand(
 /**
  * A command used to create a index data source table using the data of a exist table.
  */
-case class CreateIndexTableAsSelectCommand(
+case class CreateIndexTableCommand(
       table: CatalogTable,
       mode: SaveMode,
       columns: Seq[String],

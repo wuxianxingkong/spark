@@ -486,7 +486,7 @@ predicated
 
 // | operator=COMPLEXQUERY '(' queryString=valueExpression ',' topK=valueExpression ')'        #complexQuery
 fulltextquery
-    :operator=(TERMQUERY|FUZZYQUERY|PHRASEQUERY|PREFIXQUERY|COMPLEXQUERY)
+    :operator=(TERMQUERY|FUZZYQUERY|PHRASEQUERY|PREFIXQUERY|QUERYPARSER)
          '(' (field=valueExpression ',')? queryString=valueExpression ',' (maxEdits=valueExpression ',')?
           topK=valueExpression ')' #fieldQuery
     ;
@@ -706,7 +706,7 @@ TERMQUERY: 'TERMQUERY';
 FUZZYQUERY: 'FUZZYQUERY';
 PHRASEQUERY: 'PHRASEQUERY';
 PREFIXQUERY: 'PREFIXQUERY';
-COMPLEXQUERY: 'COMPLEXQUERY';
+QUERYPARSER: 'QUERYPARSER';
 RLIKE: 'RLIKE' | 'REGEXP';
 IS: 'IS';
 NULL: 'NULL';

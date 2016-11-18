@@ -190,9 +190,24 @@ object SparkSQLTest {
     df1.show()
   }
   private def test17(sparkSession: SparkSession) : Unit={
-    val array = Array(3,7,2,1,9)
-    sparkSession.sparkContext.parallelize(array,2).foreach(println)
-    sparkSession.sparkContext.parallelize(array,2).collect.foreach(println)
+    val df = sparkSession.read.json("examples/src/main/resources4/")
+    df.createOrReplaceTempView("test4")
+    df.printSchema()
+    sparkSession.sql("select * from test4").show()
+    sparkSession.sql("drop table if exists index_test_14")
+    val df1=sparkSession.sql("create index index_test_14 on table test4 (title,body) using org.apache.spark.sql.index")
+    df1.explain(true)
+    val df2 = sparkSession.sql("select * from index_test_14 where queryparser('nothisfield','body:(Security implications of running MySQL as root) AND title:(security)','3')")
+    df2.explain(true)
+    df2.show()
+//    val df = sparkSession.read.json("examples/src/main/resources4/")
+//    df.printSchema()
+//    val luceneRDD = LuceneRDD(df,"index_test_14",Seq[String]("title","body"))
+//    val results = luceneRDD.query("ff", "body:(Security implications of running MySQL as root)")
+//    println("Result nums: " + results.count())
+//    results.foreach(println)
+
+    // 所有测试均已通过
   }
   def main(args: Array[String]) {
     // $example on:init_session$
@@ -205,7 +220,7 @@ object SparkSQLTest {
     // For implicit conversions like converting RDDs to DataFrames
     // $example off:init_session$
     println(spark.conf.getAll)
-    test15(spark)
+    test17(spark)
     //    test10(spark)
     spark.stop()
   }

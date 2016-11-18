@@ -81,7 +81,7 @@ case class IndexRelation(
         globalTopK = topK
         LuceneRDD(sparkSession, tableName).prefixQuery(
           fieldName, query, Integer.valueOf(topK))
-      case ComplexQuery(defaultFieldName, query, topK) =>
+      case QUERYPARSER(defaultFieldName, query, topK) =>
         globalTopK = topK
         LuceneRDD(sparkSession, tableName).query(
           defaultFieldName, query, Integer.valueOf(topK))

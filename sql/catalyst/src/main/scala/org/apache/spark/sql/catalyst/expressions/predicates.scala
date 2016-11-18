@@ -689,10 +689,10 @@ case class PrefixQuery(left: Expression, right: Expression, topK: Expression)
   }
 }
 
-case class ComplexQuery(left: Expression, right: Expression, topK: Expression)
+case class QUERYPARSER(left: Expression, right: Expression, topK: Expression)
   extends Expression {
 
-  override def toString: String = s"[*Prefix* field:$left, query:$right, topK:$topK]"
+  override def toString: String = s"[*QueryParser* field:$left, query:$right, topK:$topK]"
 
   override def children: Seq[Expression] = Seq(left, right, topK)
 
