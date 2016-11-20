@@ -531,12 +531,12 @@ case class GreaterThanOrEqual(left: Expression, right: Expression)
   protected override def nullSafeEval(input1: Any, input2: Any): Any = ordering.gteq(input1, input2)
 }
 
-case class TermQuery(left: Expression, right: Expression, topK: Expression)
+case class TermQuery(field: Expression, queryString: Expression, topK: Expression)
   extends Expression{
 
-  override def toString: String = s"[*Term* field:$left, query:$right, topK:$topK]"
+  override def toString: String = s"[*Term* field:$field, query:$queryString, topK:$topK]"
 
-  override def children: Seq[Expression] = Seq(left, right, topK)
+  override def children: Seq[Expression] = Seq(field, queryString, topK)
 
   override def nullable: Boolean = false
 
@@ -555,8 +555,8 @@ case class TermQuery(left: Expression, right: Expression, topK: Expression)
    * @return an [[ExprCode]] containing the Java source code to generate the given expression
    */
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val leftGen = left.genCode(ctx)
-    val rightGen = right.genCode(ctx)
+    val leftGen = field.genCode(ctx)
+    val rightGen = queryString.genCode(ctx)
     val another = topK.genCode(ctx)
     val resultCode = ev.value
 
@@ -570,12 +570,13 @@ case class TermQuery(left: Expression, right: Expression, topK: Expression)
   }
 }
 
-case class FuzzyQuery(left: Expression, right: Expression, maxEdits: Expression, topK: Expression)
-  extends Expression {
+case class FuzzyQuery(field: Expression, queryString: Expression,
+      maxEdits: Expression, topK: Expression)
+      extends Expression {
 
-  override def toString: String = s"[*Fuzzy* field:$left, query:$right, topK:$topK]"
+  override def toString: String = s"[*Fuzzy* field:$field, query:$queryString, topK:$topK]"
 
-  override def children: Seq[Expression] = Seq(left, right, maxEdits, topK)
+  override def children: Seq[Expression] = Seq(field, queryString, maxEdits, topK)
 
   override def nullable: Boolean = false
 
@@ -594,8 +595,8 @@ case class FuzzyQuery(left: Expression, right: Expression, maxEdits: Expression,
     * @return an [[ExprCode]] containing the Java source code to generate the given expression
     */
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val leftGen = left.genCode(ctx)
-    val rightGen = right.genCode(ctx)
+    val leftGen = field.genCode(ctx)
+    val rightGen = queryString.genCode(ctx)
     val another = topK.genCode(ctx)
     val another1 = maxEdits.genCode(ctx)
     val resultCode = ev.value
@@ -611,12 +612,12 @@ case class FuzzyQuery(left: Expression, right: Expression, maxEdits: Expression,
   }
 }
 
-case class PhraseQuery(left: Expression, right: Expression, topK: Expression)
+case class PhraseQuery(field: Expression, queryString: Expression, topK: Expression)
   extends Expression {
 
-  override def toString: String = s"[*Phrase* field:$left, query:$right, topK:$topK]"
+  override def toString: String = s"[*Phrase* field:$field, query:$queryString, topK:$topK]"
 
-  override def children: Seq[Expression] = Seq(left, right, topK)
+  override def children: Seq[Expression] = Seq(field, queryString, topK)
 
   override def nullable: Boolean = false
 
@@ -635,8 +636,8 @@ case class PhraseQuery(left: Expression, right: Expression, topK: Expression)
     * @return an [[ExprCode]] containing the Java source code to generate the given expression
     */
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val leftGen = left.genCode(ctx)
-    val rightGen = right.genCode(ctx)
+    val leftGen = field.genCode(ctx)
+    val rightGen = queryString.genCode(ctx)
     val another = topK.genCode(ctx)
     val resultCode = ev.value
 
@@ -650,12 +651,12 @@ case class PhraseQuery(left: Expression, right: Expression, topK: Expression)
   }
 }
 
-case class PrefixQuery(left: Expression, right: Expression, topK: Expression)
+case class PrefixQuery(field: Expression, queryString: Expression, topK: Expression)
   extends Expression {
 
-  override def toString: String = s"[*Prefix* field:$left, query:$right, topK:$topK]"
+  override def toString: String = s"[*Prefix* field:$field, query:$queryString, topK:$topK]"
 
-  override def children: Seq[Expression] = Seq(left, right, topK)
+  override def children: Seq[Expression] = Seq(field, queryString, topK)
 
   override def nullable: Boolean = false
 
@@ -674,8 +675,8 @@ case class PrefixQuery(left: Expression, right: Expression, topK: Expression)
     * @return an [[ExprCode]] containing the Java source code to generate the given expression
     */
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val leftGen = left.genCode(ctx)
-    val rightGen = right.genCode(ctx)
+    val leftGen = field.genCode(ctx)
+    val rightGen = queryString.genCode(ctx)
     val another = topK.genCode(ctx)
     val resultCode = ev.value
 
@@ -689,12 +690,13 @@ case class PrefixQuery(left: Expression, right: Expression, topK: Expression)
   }
 }
 
-case class QUERYPARSER(left: Expression, right: Expression, topK: Expression)
+case class QueryParser(defaultField: Expression, queryString: Expression, topK: Expression)
   extends Expression {
 
-  override def toString: String = s"[*QueryParser* field:$left, query:$right, topK:$topK]"
+  override def toString: String =
+    s"[*QueryParser* field:$defaultField, query:$queryString, topK:$topK]"
 
-  override def children: Seq[Expression] = Seq(left, right, topK)
+  override def children: Seq[Expression] = Seq(defaultField, queryString, topK)
 
   override def nullable: Boolean = false
 
@@ -713,8 +715,8 @@ case class QUERYPARSER(left: Expression, right: Expression, topK: Expression)
     * @return an [[ExprCode]] containing the Java source code to generate the given expression
     */
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val leftGen = left.genCode(ctx)
-    val rightGen = right.genCode(ctx)
+    val leftGen = defaultField.genCode(ctx)
+    val rightGen = queryString.genCode(ctx)
     val another = topK.genCode(ctx)
     val resultCode = ev.value
 

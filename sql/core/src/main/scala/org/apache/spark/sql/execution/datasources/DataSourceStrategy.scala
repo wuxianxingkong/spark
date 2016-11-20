@@ -498,7 +498,7 @@ object DataSourceStrategy extends Strategy with Logging {
       Literal(query: UTF8String, StringType), Literal(topK: UTF8String, StringType)) =>
         Some(sources.PrefixQuery(field.toString, query.toString, Integer.valueOf(topK.toString)))
 
-      case expressions.QUERYPARSER(Literal(field: UTF8String, StringType),
+      case expressions.QueryParser(Literal(field: UTF8String, StringType),
       Literal(query: UTF8String, StringType), Literal(topK: UTF8String, StringType)) =>
         Some(sources.QUERYPARSER(field.toString, query.toString, Integer.valueOf(topK.toString)))
 
