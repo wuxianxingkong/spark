@@ -191,13 +191,13 @@ object SparkSQLTest {
   }
   private def test17(sparkSession: SparkSession) : Unit={
     val df = sparkSession.read.json("examples/src/main/resources4/")
-    df.createOrReplaceTempView("test4")
+    df.createOrReplaceTempView("articles")
     df.printSchema()
-    sparkSession.sql("select * from test4").show()
-    sparkSession.sql("drop table if exists index_test_14")
-    val df1=sparkSession.sql("create index index_test_14 on table test4 (title,body) using org.apache.spark.sql.index")
+    sparkSession.sql("select * from articles").show()
+    sparkSession.sql("drop table if exists articles_index")
+    val df1=sparkSession.sql("create index articles_index on table articles (title,body) using org.apache.spark.sql.index")
     df1.explain(true)
-    val df2 = sparkSession.sql("select * from index_test_14 where queryparser('nothisfield','body:(Security implications of running MySQL as root) AND title:(security)','3')")
+    val df2 = sparkSession.sql("select * from articles_index where queryparser('nothisfield','body:(Security implications of running MySQL as root) AND title:(security)','3')")
     df2.explain(true)
     df2.show()
 //    val df = sparkSession.read.json("examples/src/main/resources4/")
