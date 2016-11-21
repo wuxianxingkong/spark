@@ -221,23 +221,23 @@ case class StringContains(attribute: String, value: String) extends Filter {
 
 
 
-case class TermQuery(attribute: String, value: String, topK: Integer) extends Filter {
-  override def references: Array[String] = Array(attribute)
+case class TermQuery(field: String, queryString: String, topK: Integer) extends Filter {
+  override def references: Array[String] = Array(field)
 }
 
-case class FuzzyQuery(attribute: String, value: String,
+case class FuzzyQuery(field: String, queryString: String,
       maxEdits: Integer, topK: Integer) extends Filter {
-  override def references: Array[String] = Array(attribute)
+  override def references: Array[String] = Array(field)
 }
 
-case class PhraseQuery(attribute: String, value: String, topK: Integer) extends Filter {
-  override def references: Array[String] = Array(attribute)
+case class PhraseQuery(field: String, queryString: String, topK: Integer) extends Filter {
+  override def references: Array[String] = Array(field)
 }
 
-case class PrefixQuery(attribute: String, value: String, topK: Integer) extends Filter {
-  override def references: Array[String] = Array(attribute)
+case class PrefixQuery(field: String, queryString: String, topK: Integer) extends Filter {
+  override def references: Array[String] = Array(field)
 }
 
-case class QueryParser(attribute: String, value: String, topK: Integer) extends Filter {
-  override def references: Array[String] = Array(attribute)
+case class QueryParser(field: String, queryString: String, topK: Integer) extends Filter {
+  override def references: Array[String] = Array(field)
 }
