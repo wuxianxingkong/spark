@@ -603,7 +603,7 @@ object DataSourceStrategy extends Strategy with Logging {
 
       case expressions.QueryParser(Literal(field: UTF8String, StringType),
       Literal(query: UTF8String, StringType), Literal(topK: UTF8String, StringType)) =>
-        Some(sources.QUERYPARSER(field.toString, query.toString, Integer.valueOf(topK.toString)))
+        Some(sources.QueryParser(field.toString, query.toString, Integer.valueOf(topK.toString)))
 
 
       case _ => None
