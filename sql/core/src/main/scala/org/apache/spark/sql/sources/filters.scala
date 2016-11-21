@@ -220,6 +220,6 @@ case class PrefixQuery(attribute: String, value: String, topK: Integer) extends 
   override def references: Array[String] = Array(attribute)
 }
 
-case class QUERYPARSER(attribute: String, value: String, topK: Integer) extends Filter {
+case class QueryParser(attribute: String, value: String, topK: Integer) extends Filter {
   override def references: Array[String] = Array(attribute)
 }
