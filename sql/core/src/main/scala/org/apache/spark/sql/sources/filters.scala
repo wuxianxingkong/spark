@@ -238,6 +238,6 @@ case class PrefixQuery(field: String, queryString: String, topK: Integer) extend
   override def references: Array[String] = Array(field)
 }
 
-case class QueryParser(field: String, queryString: String, topK: Integer) extends Filter {
-  override def references: Array[String] = Array(field)
+case class QueryParser(defaultField: String, queryString: String, topK: Integer) extends Filter {
+  override def references: Array[String] = Array(defaultField)
 }
