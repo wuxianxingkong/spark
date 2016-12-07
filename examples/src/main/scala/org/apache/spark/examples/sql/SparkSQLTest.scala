@@ -210,6 +210,10 @@ object SparkSQLTest {
 
     // 所有测试均已通过
   }
+  private def test18(sparkSession: SparkSession) : Unit={
+    var rdd2 = sparkSession.sparkContext.makeRDD(Seq("A","B","R","D","F"),2)
+    rdd2.zipWithIndex().collect.foreach(println)
+  }
   def main(args: Array[String]) {
     // $example on:init_session$
     val spark = SparkSession
@@ -221,7 +225,7 @@ object SparkSQLTest {
     // For implicit conversions like converting RDDs to DataFrames
     // $example off:init_session$
     println(spark.conf.getAll)
-    test17(spark)
+    test18(spark)
     //    test10(spark)
     spark.stop()
   }
