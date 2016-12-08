@@ -41,7 +41,7 @@ import scala.reflect.{ClassTag, _}
 
 private[lucenerdd] class LuceneRDDPartition[T]
 (private val iter: Iterator[T])(conf: Configuration)(
-  path: String, status: Status)
+  path: String, status: Status, partitionIndex: Int = -1)
 (implicit docConversion: T => Document,
  override implicit val kTag: ClassTag[T])
   extends AbstractLuceneRDDPartition[T]
@@ -66,7 +66,7 @@ private[lucenerdd] class LuceneRDDPartition[T]
     val fullPath = status match {
       case Status.Rewrite =>
         s"${
-          path}/indexDirectory.${time}.${
+          path}/indexDirectory.${partitionIndex}.${time}.${
           Thread.currentThread().getId}"
       case Status.Exists =>
         path
@@ -83,7 +83,7 @@ private[lucenerdd] class LuceneRDDPartition[T]
     val fullPath = status match {
       case Status.Rewrite =>
         s"${
-          path}/taxonomyDirectory.${time}.${
+          path}/taxonomyDirectory.${partitionIndex}.${time}.${
           Thread.currentThread().getId}"
       case Status.Exists =>
         path.replaceAll("indexDirectory", "taxonomyDirectory")
@@ -220,7 +220,8 @@ object  LuceneRDDPartition {
     new LuceneRDDPartition[T](iter)(conf)(path, status)(docConversion, classTag[T])
   }
   def apply
-  (indexColumns: Seq[String], iter: Iterator[Row], conf: Configuration,
+  (indexColumns: Seq[String], quickWay: Boolean,
+   partitionIndex: Int, iter: Iterator[Row], conf: Configuration,
    path: String, status: Status): LuceneRDDPartition[Row] = {
     implicit val columns = indexColumns.foldLeft(Set[String]())((set, column) => set + column)
     val Stored = Field.Store.YES
@@ -265,20 +266,46 @@ object  LuceneRDDPartition {
       }
       doc
     }
+    def typeToDocumentWithoutStore[T: ClassTag](doc: Document, fieldName: String,
+                                                s: T): Document = {
+      s match {
+        case x: String if x != null =>
+          doc.add(new Field(fieldName, x, AllFields.noStore_textFieldType))
+        case x: Long if x != null =>
+          doc.add(new LongField(fieldName, x, AllFields.noStore_longFieldType))
+        case x: Int if x != null =>
+          doc.add(new IntField(fieldName, x, AllFields.noStore_intFieldType))
+        case x: Float if x != null =>
+          doc.add(new FloatField(fieldName, x, AllFields.noStore_floatFieldType))
+        case x: Double if x != null =>
+          doc.add(new DoubleField(fieldName, x, AllFields.noStore_doubleFieldType))
+        case _ => Unit
+      }
+      doc
+    }
     def docConversion(row: Row)(implicit columns: Set[String]): Document = {
       val doc = new Document
       val fieldNames = row.schema.fieldNames
       fieldNames.foreach{ case fieldName =>
         val index = row.fieldIndex(fieldName)
-        if(columns.contains(fieldName)) {
-          typeToDocument(doc, fieldName, row.get(index))
+        if(!quickWay) {
+          if (columns.contains(fieldName)) {
+            typeToDocumentWithoutStore(doc, fieldName, row.get(index))
+          }
         } else {
-          typeToDocumentWithoutIndex(doc, fieldName, row.get(index))
+          if (columns.contains(fieldName)) {
+            typeToDocument(doc, fieldName, row.get(index))
+          } else {
+            typeToDocumentWithoutIndex(doc, fieldName, row.get(index))
+          }
         }
-
+      }
+      if(!quickWay) {
+        doc.add(new IntField("partitionIndex", partitionIndex, AllFields.notIndex_intFieldType))
       }
       doc
     }
-    new LuceneRDDPartition[Row](iter)(conf)(path, status)(docConversion, classTag[Row])
+    new LuceneRDDPartition[Row](iter)(
+      conf)(path, status, partitionIndex)(docConversion, classTag[Row])
   }
 }

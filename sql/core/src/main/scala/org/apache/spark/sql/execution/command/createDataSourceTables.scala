@@ -240,6 +240,7 @@ case class CreateDataSourceTableAsSelectCommand(
  */
 case class CreateIndexTableCommand(
       table: CatalogTable,
+      sourceTable: String,
       mode: SaveMode,
       columns: Seq[String],
       query: LogicalPlan)
@@ -259,13 +260,14 @@ case class CreateIndexTableCommand(
     val optionsWithPath = if (table.tableType == CatalogTableType.MANAGED) {
       logInfo("Pay attention, maybe we need just set " +
         "path to table.identifier without prefix sessionState.catalog.defaultTablePath")
-      table.storage.properties + ("path" -> (sessionState.catalog.defaultTablePath(table.identifier)
+      // sessionState.catalog.defaultTablePath(table.identifier) -> table.identifier
+      table.storage.properties + ("path" -> (table.identifier.identifier
         +"_00index")) + ("indexColumns" -> columns.mkString(",")) + {
         query match {
           case project: Project => ("quickway" -> "no")
           case _ => ("quickway" -> "yes")
         }
-      }
+      } + ("sourceTable" -> sourceTable)
 
     } else {
       table.storage.properties

@@ -42,6 +42,7 @@ case class CreateTable(tableDesc: CatalogTable, mode: SaveMode, query: Option[Lo
 
 case class CreateIndexTable(
       targetTableDesc: CatalogTable,
+      sourceTable: TableIdentifier,
       mode: SaveMode,
       colums: Seq[String],
       sourceRelation: LogicalPlan)

@@ -123,7 +123,7 @@ object SparkSQLTest {
     // test index with specified columns
     val df = sparkSession.read.json("examples/src/main/resources3/")
     df.printSchema()
-    val luceneRDD = LuceneRDD(df,"test_test_1",Seq[String]("name"))
+    val luceneRDD = LuceneRDD(df,"test_test_1",Seq[String]("name"), true)
     val results = luceneRDD.query("name", "just~")
     println("Result nums: " + results.count())
     results.foreach(println)
@@ -133,7 +133,7 @@ object SparkSQLTest {
     // test index with specified columns
     val df = sparkSession.read.json("examples/src/main/resources3/")
     df.printSchema()
-    val luceneRDD = LuceneRDD(df,"test_test_1",Seq[String]("another"))
+    val luceneRDD = LuceneRDD(df,"test_test_1",Seq[String]("another"), true)
     val results = luceneRDD.termQuery("another", "b")
     println("Result nums: " + results.count())
     results.foreach(println)
@@ -193,7 +193,7 @@ object SparkSQLTest {
     val df = sparkSession.read.json("examples/src/main/resources4/")
     df.createOrReplaceTempView("articles")
     df.printSchema()
-    sparkSession.sql("select * from articles").show()
+    //sparkSession.sql("select * from articles").show()
     sparkSession.sql("drop table if exists articles_index")
     val df1=sparkSession.sql("create index articles_index on table articles (title,body) using org.apache.spark.sql.index")
     df1.explain(true)
@@ -211,8 +211,15 @@ object SparkSQLTest {
     // 所有测试均已通过
   }
   private def test18(sparkSession: SparkSession) : Unit={
-    var rdd2 = sparkSession.sparkContext.makeRDD(Seq("A","B","R","D","F"),2)
-    rdd2.zipWithIndex().collect.foreach(println)
+    var rdd = sparkSession.sparkContext.makeRDD(Seq("A","B","R","D","F"),2)
+    rdd.zipWithIndex().collect.foreach(println)
+  }
+  private def test19(sparkSession: SparkSession) : Unit={
+    val df = sparkSession.read.json("examples/src/main/resources4/")
+    df.createOrReplaceTempView("articles")
+    val df1 =  sparkSession.sql("select * from articles a join articles b on a.id=b.id")
+    df1.explain(true)
+    df1.show()
   }
   def main(args: Array[String]) {
     // $example on:init_session$
@@ -225,7 +232,7 @@ object SparkSQLTest {
     // For implicit conversions like converting RDDs to DataFrames
     // $example off:init_session$
     println(spark.conf.getAll)
-    test18(spark)
+    test17(spark)
     //    test10(spark)
     spark.stop()
   }

@@ -323,11 +323,12 @@ object LuceneRDD {
     * @return
     */
   def apply(conf: Configuration, elems: RDD[Row],
-      tableName: String, indexColumns: Seq[String])
+      tableName: String, indexColumns: Seq[String], quickWay: Boolean)
       : LuceneRDD[Row] = {
     val serialConf = new SeriConfiguration(conf)
-    val partitions = elems.mapPartitions[AbstractLuceneRDDPartition[Row]](
-      iter => Iterator(LuceneRDDPartition(indexColumns, iter, serialConf,
+    val partitions = elems.mapPartitionsWithIndex[AbstractLuceneRDDPartition[Row]](
+      (index, iterator) =>
+        Iterator(LuceneRDDPartition(indexColumns, quickWay: Boolean, index, iterator, serialConf,
         tableName, Status.Rewrite)),
       preservesPartitioning = true)
     new LuceneRDD[Row](partitions)
@@ -350,7 +351,9 @@ object LuceneRDD {
       val directorys = hdfs.listStatus(qualified)
       val indexPathsFiltered = directorys.filter(directory =>
         directory.isDirectory && directory.getPath.toString.contains("indexDirectory"))
-      val indexPaths = indexPathsFiltered.map(directory => directory.getPath.toString)
+      // Sort by partitionIndex asc
+      val indexPaths = indexPathsFiltered.map(directory =>
+        directory.getPath.toString).sortWith(_.toLowerCase < _.toLowerCase)
       val serialConf = new SeriConfiguration(conf)
       val rdd = sparkSession.sparkContext.parallelize[String](
         indexPaths.toList.asInstanceOf[Seq[String]], indexPaths.toSeq.size)
@@ -401,10 +404,10 @@ object LuceneRDD {
     * @param indexColumns: Seq[String]
     * @return
     */
-  def apply(dataFrame: DataFrame, tableName: String, indexColumns: Seq[String])
+  def apply(dataFrame: DataFrame, tableName: String, indexColumns: Seq[String], quickWay: Boolean)
   : LuceneRDD[Row] = {
     apply(dataFrame.sqlContext.sparkContext.hadoopConfiguration,
-      dataFrame.rdd, tableName, indexColumns)
+      dataFrame.rdd, tableName, indexColumns, quickWay)
   }
 
   /**
