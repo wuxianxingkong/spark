@@ -18,17 +18,18 @@ package org.apache.spark.sql.execution.datasources.index
 
 import java.util.Properties
 
+import scala.collection.JavaConversions._
 import org.apache.lucene.index.IndexableField
 import org.apache.spark.internal.Logging
 import org.apache.spark._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.sort.SortShuffleManager
-import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
-import org.apache.spark.sql.catalyst.expressions.{AttributeReference, Descending, MutableRow, SortOrder, SpecificMutableRow, UnsafeProjection}
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, Descending, GenericMutableRow, GenericRowWithSchema, MutableRow, SortOrder, SpecificMutableRow, UnsafeProjection}
 import org.apache.spark.sql.catalyst.plans.physical.{Partitioning, SinglePartition}
-import org.apache.spark.sql.execution.{PartitionIdPassthrough, ShuffledRowRDD, UnsafeRowSerializer}
+import org.apache.spark.sql.execution.{PartitionIdPassthrough, RDDConversions, ShuffledRowRDD, UnsafeRowSerializer}
 import org.apache.spark.sql.execution.datasources.index.lucenerdd._
 import org.apache.spark.sql.execution.datasources.index.lucenerdd.models.SparkScoreDoc
 import org.apache.spark.sql.execution.exchange.ShuffleExchange
@@ -42,6 +43,7 @@ import org.apache.spark.util.{BoundedPriorityQueue, CompletionIterator, MutableP
 case class IndexRelation(
       val parameters: Map[String, String],
       val tableName: String,
+      val sourceTable: String,
       val userSpecifiedSchema: StructType,
       @transient val sparkSession: SparkSession)
   extends BaseRelation
@@ -53,10 +55,20 @@ case class IndexRelation(
   override val needConversion: Boolean = false
 
   override def schema: StructType = {
-    logInfo("Infer Schema from index...")
-    val struct = LuceneRDD.inferSchema(sparkSession, tableName)
-    logInfo(s"Schema is $struct")
-    struct
+
+    logInfo("Infer Schema from " +
+      (if (show(parameters.get("quickway")).equals("yes")) "index" else "original table"))
+
+    val finalSchema = parameters.get("quickway") match {
+      case Some("yes") =>
+        LuceneRDD.inferSchema(sparkSession, tableName)
+      case _ =>
+        StructType(Seq(StructField("score", FloatType, true))
+          ++ sparkSession.table(sourceTable).schema.fields)
+    }
+
+    logInfo(s"Schema is $finalSchema")
+    finalSchema
   }
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
     logInfo(s"User SpecifiedSchema: $userSpecifiedSchema")
@@ -91,15 +103,58 @@ case class IndexRelation(
     // We can't just pass schema to mapPartitions function because schema
     // will lose sparkSession value when executed in executor.
     // So, we save schema to executorSchema
-    val executorSchema = schema
+    val executorSchema = parameters.get("quickway") match {
+        // If yes, just reuse schema, or, infer it
+      case Some("yes") => schema
+      case _ => LuceneRDD.inferSchema(sparkSession, tableName)
+    }
+
+
     // Local topK
     val partitionResult = midResult.mapPartitions[InternalRow](iterator =>
       sparkScoreDocsToSparkInternalRows(iterator, executorSchema)
     )
+
+    val originalRDD = sparkSession.table(sourceTable).rdd
+    // Do parallel connect with original data
+    val connectedData = parameters.get("quickway") match {
+      // If yes, just reuse schema, or, infer it
+      case Some("yes") =>
+        partitionResult
+      case _ =>
+        // We use schema with score field
+        val extendedSchemaDTList = schema.fields.map(_.dataType)
+        originalRDD.zipPartitions(partitionResult) {
+          (rdd1Iterator, rdd2Iterator) => {
+            var indexCount: Int = 0
+            // Collect index needed to set
+            val map = rdd2Iterator.toTraversable.map(row => (row.getInt(0) -> row.getFloat(2))).toMap
+            val iterator = rdd1Iterator.zipWithIndex.filter(pair =>
+              map.contains(pair._2)).map(pair => (pair._1, map.get(pair._2)))
+            val numColumns = extendedSchemaDTList.length
+            val mutableRow = new GenericMutableRow(numColumns)
+            val converters = extendedSchemaDTList.map(
+              CatalystTypeConverters.createToCatalystConverter)
+            iterator.map { r =>
+              mutableRow(0) = converters(0)(r._2.get)
+              var i = 1
+              while (i < numColumns) {
+                // In r._1(index) index must be i-1 because row data isn't start from index 0
+                mutableRow(i) = converters(i)(r._1(i-1))
+                i += 1
+              }
+
+              mutableRow
+            }
+          }
+        }.asInstanceOf[RDD[InternalRow]]
+
+    }
+
     // Global topK
     val shuffled = new ShuffledRowRDD(
-      prepareShuffleDependency(partitionResult, SinglePartition))
-    val finalresult = shuffled.mapPartitions { iter =>
+      prepareShuffleDependency(connectedData, SinglePartition))
+    val finalResult = shuffled.mapPartitions { iter =>
       val topK = org.apache.spark.util.collection.Utils.takeOrdered(
       iter.map(_.copy()), globalTopK)(descending)
       topK
@@ -107,15 +162,16 @@ case class IndexRelation(
 //    println("size:"+shuffled.partitions.size)
 //    shuffled.foreach(println)
 //    partitionResult.asInstanceOf[RDD[Row]]
-    finalresult.asInstanceOf[RDD[Row]]
+    finalResult.asInstanceOf[RDD[Row]]
   }
   /**
     * Ordering by score (descending)
     */
   def descending: Ordering[InternalRow] = new Ordering[InternalRow]{
+    val compareIndex = if (show(parameters.get("quickway")).equals("yes")) 2 else 0
     override def compare(x: InternalRow, y: InternalRow): Int = {
-      val left: Float = x.getFloat(2)
-      val right: Float = y.getFloat(2)
+      val left: Float = x.getFloat(compareIndex)
+      val right: Float = y.getFloat(compareIndex)
       -left.compareTo(right)
     }
   }
@@ -225,10 +281,21 @@ case class IndexRelation(
         if (iter.hasNext) {
           val sparkScoreDoc = iter.next()
           val fieldList = sparkScoreDoc.doc.doc.getFields()
+//          // Get partitionIndex index
+//          val partitionIndexFieldIndex = fieldList.map(
+//            indexField => indexField.name()).indexOf("partitionIndex")
+//          // Get partitionIndex
+//          val partitionIndex = fieldList(partitionIndexFieldIndex).name
+//          fieldList.remove(partitionIndexFieldIndex)
           // First three columns can't use 'getters'
           // Set docId column
           mutableRow.setInt(0, sparkScoreDoc.docId)
-          // Set shardIndex column
+          // Set partitionIndex/shardIndex column
+//          if (!show(parameters.get("quickway")).equals("yes")) {
+//            mutableRow.setInt(1, partitionIndex.toInt)
+//          } else {
+//            mutableRow.setInt(1, sparkScoreDoc.shardIndex)
+//          }
           mutableRow.setInt(1, sparkScoreDoc.shardIndex)
           // Set score column
           mutableRow.setFloat(2, sparkScoreDoc.score)
@@ -252,22 +319,27 @@ case class IndexRelation(
     }
     CompletionIterator[InternalRow, Iterator[InternalRow]](rowsIterator, close())
   }
-
+  def show(x: Option[String]): String = x match {
+    case Some(s) => s
+    case None => "?"
+  }
   override def insert(data: DataFrame, overwrite: Boolean): Unit = {
-    def show(x: Option[String]) = x match {
-      case Some(s) => s
-      case None => "?"
-    }
-    if (parameters.contains("quickway") && show(parameters.get("quickway")).equals("yes")) {
+
+
+    // quickway == yes means store all column data
+//    if (parameters.contains("quickway") && show(parameters.get("quickway")).equals("yes")) {
       val indexColumns_string = parameters.getOrElse("indexColumns",
         sys.error("Index path isn't specified..."))
       val indexColumns = indexColumns_string.split(",")
-      val rdd = LuceneRDD(data, tableName, indexColumns.toSeq)
+      val rdd = LuceneRDD(data, tableName, indexColumns.toSeq,
+        show(parameters.get("quickway")).equals("yes"))
       rdd.count()
-    } else {
-      val rdd = LuceneRDD(data, tableName)
-      rdd.count()
-    }
+//    } else {
+//      // quickway == false means
+//      // needs connection between original rdd and result rdd
+//      val rdd = LuceneRDD(data, tableName)
+//      rdd.count()
+//    }
 
     //
 

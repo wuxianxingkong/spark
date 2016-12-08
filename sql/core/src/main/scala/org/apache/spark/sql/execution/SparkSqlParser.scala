@@ -371,6 +371,7 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
     val columns = namedExpressions.map(e => e.name)
     CreateIndexTable(
       targetTableDesc,
+      sourceTable,
       SaveMode.Overwrite,
       columns,
       UnresolvedRelation(sourceTable, None))

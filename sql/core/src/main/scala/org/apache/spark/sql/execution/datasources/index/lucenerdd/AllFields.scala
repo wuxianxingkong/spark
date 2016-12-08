@@ -21,46 +21,90 @@ import org.apache.lucene.index.IndexOptions
 import org.apache.lucene.util.NumericUtils
 
 object AllFields {
-//  val intFieldType = new FieldType()
-//  intFieldType.setTokenized(true);
-//  intFieldType.setOmitNorms(true);
-//  intFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
-//  intFieldType.setNumericType(FieldType.NumericType.INT);
-//  intFieldType.setNumericPrecisionStep(NumericUtils.PRECISION_STEP_DEFAULT_32);
-//  intFieldType.setStored(true);
-//  intFieldType.freeze();
-//
-//  val longFieldType = new FieldType()
-//  longFieldType.setTokenized(true);
-//  longFieldType.setOmitNorms(true)
-//  longFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
-//  longFieldType.setNumericType(FieldType.NumericType.LONG);
-//  longFieldType.setStored(true);
-//  longFieldType.freeze();
-//
-//
-//  val doubleFieldType = new FieldType()
-//  doubleFieldType.setTokenized(true);
-//  doubleFieldType.setOmitNorms(true);
-//  doubleFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
-//  doubleFieldType.setNumericType(FieldType.NumericType.DOUBLE);
-//  doubleFieldType.setStored(true);
-//  doubleFieldType.freeze();
-//
-//  val floatFieldType = new FieldType()
-//  floatFieldType.setTokenized(true);
-//  floatFieldType.setOmitNorms(true);
-//  floatFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
-//  floatFieldType.setNumericType(FieldType.NumericType.FLOAT);
-//  floatFieldType.setNumericPrecisionStep(NumericUtils.PRECISION_STEP_DEFAULT_32);
-//  floatFieldType.setStored(true);
-//  floatFieldType.freeze();
-//
-//  val textFieldType = new FieldType()
-//  textFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
-//  textFieldType.setTokenized(true);
-//  textFieldType.setStored(true);
-//  textFieldType.freeze();
+  // Index but no store
+  val noStore_intFieldType = new FieldType()
+  noStore_intFieldType.setTokenized(true);
+  noStore_intFieldType.setOmitNorms(true);
+  noStore_intFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+  noStore_intFieldType.setNumericType(FieldType.NumericType.INT);
+  noStore_intFieldType.setNumericPrecisionStep(NumericUtils.PRECISION_STEP_DEFAULT_32);
+  noStore_intFieldType.setStored(false);
+  noStore_intFieldType.freeze();
+
+  val noStore_longFieldType = new FieldType()
+  noStore_longFieldType.setTokenized(true);
+  noStore_longFieldType.setOmitNorms(true)
+  noStore_longFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+  noStore_longFieldType.setNumericType(FieldType.NumericType.LONG);
+  noStore_longFieldType.setStored(false);
+  noStore_longFieldType.freeze();
+
+
+  val noStore_doubleFieldType = new FieldType()
+  noStore_doubleFieldType.setTokenized(true);
+  noStore_doubleFieldType.setOmitNorms(true);
+  noStore_doubleFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+  noStore_doubleFieldType.setNumericType(FieldType.NumericType.DOUBLE);
+  noStore_doubleFieldType.setStored(false);
+  noStore_doubleFieldType.freeze();
+
+  val noStore_floatFieldType = new FieldType()
+  noStore_floatFieldType.setTokenized(true);
+  noStore_floatFieldType.setOmitNorms(true);
+  noStore_floatFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+  noStore_floatFieldType.setNumericType(FieldType.NumericType.FLOAT);
+  noStore_floatFieldType.setNumericPrecisionStep(NumericUtils.PRECISION_STEP_DEFAULT_32);
+  noStore_floatFieldType.setStored(false);
+  noStore_floatFieldType.freeze();
+
+  val noStore_textFieldType = new FieldType()
+  noStore_textFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+  noStore_textFieldType.setTokenized(true);
+  noStore_textFieldType.setStored(false);
+  noStore_textFieldType.freeze();
+
+  // No Store and no index
+
+  val no_intFieldType = new FieldType()
+  no_intFieldType.setTokenized(false);
+  no_intFieldType.setOmitNorms(true);
+  no_intFieldType.setIndexOptions(IndexOptions.NONE);
+  no_intFieldType.setNumericType(FieldType.NumericType.INT);
+  no_intFieldType.setStored(true)
+  no_intFieldType.setNumericPrecisionStep(NumericUtils.PRECISION_STEP_DEFAULT_32);
+  no_intFieldType.freeze();
+
+  val no_longFieldType = new FieldType()
+  no_longFieldType.setTokenized(false)
+  no_longFieldType.setIndexOptions(IndexOptions.NONE)
+  no_longFieldType.setNumericType(FieldType.NumericType.LONG);
+  no_longFieldType.setStored(true)
+  no_longFieldType.freeze()
+
+  val no_doubleFieldType = new FieldType()
+  no_doubleFieldType.setTokenized(false);
+  no_doubleFieldType.setOmitNorms(true);
+  no_doubleFieldType.setIndexOptions(IndexOptions.NONE);
+  no_doubleFieldType.setNumericType(FieldType.NumericType.DOUBLE);
+  no_doubleFieldType.setStored(true)
+  no_doubleFieldType.freeze()
+
+  val no_floatFieldType = new FieldType()
+  no_floatFieldType.setTokenized(false);
+  no_floatFieldType.setOmitNorms(true);
+  no_floatFieldType.setIndexOptions(IndexOptions.NONE);
+  no_floatFieldType.setNumericType(FieldType.NumericType.FLOAT);
+  no_floatFieldType.setNumericPrecisionStep(NumericUtils.PRECISION_STEP_DEFAULT_32);
+  no_floatFieldType.setStored(true)
+  no_floatFieldType.freeze();
+
+  val no_textFieldType = new FieldType()
+  no_textFieldType.setTokenized(false);
+  no_textFieldType.setIndexOptions(IndexOptions.NONE);
+  no_textFieldType.setStored(true)
+  no_textFieldType.freeze();
+
+  // Store but no index
 
   val notIndex_intFieldType = new FieldType()
   notIndex_intFieldType.setTokenized(false);
