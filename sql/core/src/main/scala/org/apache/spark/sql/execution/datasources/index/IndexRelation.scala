@@ -128,7 +128,7 @@ case class IndexRelation(
           (rdd1Iterator, rdd2Iterator) => {
             var indexCount: Int = 0
             // Collect index needed to set
-            val map = rdd2Iterator.toTraversable.map(row => (row.getInt(0) -> row.getFloat(2))).toMap
+            val map = rdd2Iterator.toTraversable.map(row => (row.getInt(0) -> row.getFloat(1))).toMap
             val iterator = rdd1Iterator.zipWithIndex.filter(pair =>
               map.contains(pair._2)).map(pair => (pair._1, map.get(pair._2)))
             val numColumns = extendedSchemaDTList.length
@@ -168,7 +168,7 @@ case class IndexRelation(
     * Ordering by score (descending)
     */
   def descending: Ordering[InternalRow] = new Ordering[InternalRow]{
-    val compareIndex = if (show(parameters.get("quickway")).equals("yes")) 2 else 0
+    val compareIndex = if (show(parameters.get("quickway")).equals("yes")) 1 else 0
     override def compare(x: InternalRow, y: InternalRow): Int = {
       val left: Float = x.getFloat(compareIndex)
       val right: Float = y.getFloat(compareIndex)
@@ -296,15 +296,15 @@ case class IndexRelation(
 //          } else {
 //            mutableRow.setInt(1, sparkScoreDoc.shardIndex)
 //          }
-          mutableRow.setInt(1, sparkScoreDoc.shardIndex)
+          // mutableRow.setInt(1, sparkScoreDoc.shardIndex)
           // Set score column
-          mutableRow.setFloat(2, sparkScoreDoc.score)
+          mutableRow.setFloat(1, sparkScoreDoc.score)
           // Begin at index 3
-          var i = 3
+          var i = 2
           // logInfo(s"length = ${getters.length}")
           while (i< getters.length) {
             logInfo(s"i = $i")
-            getters(i).apply(fieldList.get(i-3), mutableRow, i)
+            getters(i).apply(fieldList.get(i-2), mutableRow, i)
             i = i + 1
           }
           mutableRow

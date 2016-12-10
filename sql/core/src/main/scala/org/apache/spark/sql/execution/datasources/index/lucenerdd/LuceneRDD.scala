@@ -357,10 +357,10 @@ object LuceneRDD {
       val serialConf = new SeriConfiguration(conf)
       val rdd = sparkSession.sparkContext.parallelize[String](
         indexPaths.toList.asInstanceOf[Seq[String]], indexPaths.toSeq.size)
-      val partitions = rdd.mapPartitions[AbstractLuceneRDDPartition[String]](
-        iter => {
-          val temp = iter.take(1).next().asInstanceOf[String]
-          Iterator(LuceneRDDPartition(iter, serialConf, temp, Status.Exists))},
+      val partitions = rdd.mapPartitionsWithIndex[AbstractLuceneRDDPartition[String]](
+        (index, iterator) => {
+          val temp = iterator.take(1).next().asInstanceOf[String]
+          Iterator(LuceneRDDPartition(iterator, serialConf, temp, Status.Exists))},
         preservesPartitioning = true)
       return new LuceneRDD[String](partitions)
     } else {
@@ -455,9 +455,9 @@ object LuceneRDD {
 //        case e: TextField => StructField(e.name, StringType, true)
 //        case _ => StructField(field.name, StringType, true)}
       )
+      // StructField("shardIndex", IntegerType, true),
       val originSchema = new StructType(allFields)
       StructType(Seq(StructField("docId", IntegerType, true),
-        StructField("shardIndex", IntegerType, true),
         StructField("score", FloatType, true)) ++ originSchema.fields)
     } else {
       sys.error(s"${tableName} isn't exist")

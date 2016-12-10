@@ -215,7 +215,8 @@ private[lucenerdd] class LuceneRDDPartition[T]
 
 object  LuceneRDDPartition {
   def apply[T: ClassTag]
-      (iter: Iterator[T], conf: Configuration, path: String, status: Status)(
+      (iter: Iterator[T], conf: Configuration, path: String,
+       status: Status)(
       implicit docConversion: T => Document): LuceneRDDPartition[T] = {
     new LuceneRDDPartition[T](iter)(conf)(path, status)(docConversion, classTag[T])
   }
@@ -300,9 +301,9 @@ object  LuceneRDDPartition {
           }
         }
       }
-      if(!quickWay) {
+//      if(!quickWay) {
         doc.add(new IntField("partitionIndex", partitionIndex, AllFields.notIndex_intFieldType))
-      }
+//      }
       doc
     }
     new LuceneRDDPartition[Row](iter)(
