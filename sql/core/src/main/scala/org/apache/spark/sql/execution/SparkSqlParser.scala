@@ -374,7 +374,7 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
       sourceTable,
       SaveMode.Overwrite,
       columns,
-      UnresolvedRelation(sourceTable, None))
+      Project(namedExpressions, UnresolvedRelation(sourceTable, None)))
   }
   /**
    * Create a data source table, returning a [[CreateTable]] logical plan.
