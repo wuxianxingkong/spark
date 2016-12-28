@@ -131,11 +131,11 @@ object SparkSQLTest {
   }
   private def test11(sparkSession: SparkSession) : Unit={
     // test index with specified columns
-    val df = sparkSession.read.json("examples/src/main/resources3/")
+    val df = sparkSession.read.json("examples/src/main/resources4/")
     df.printSchema()
-    val luceneRDD = LuceneRDD(df,"test_test_1",Seq[String]("another"), true)
-    val results = luceneRDD.termQuery("another", "b")
-    println("Result nums: " + results.count())
+    df.show()
+    val luceneRDD = LuceneRDD(df,"test_index",Seq[String]("title","body"), true)
+    val results = luceneRDD.query("nothisfield","body:database",3)
     results.foreach(println)
     // 如果索引的词是停用词，那么是搜不到的，比如"A"等停用词
     // 对于非停用词，如"B"，就能搜到
@@ -157,7 +157,7 @@ object SparkSQLTest {
   private def test13(sparkSession: SparkSession) : Unit={
     val df = sparkSession.read.json("examples/src/main/resources3/")
     df.createOrReplaceTempView("test1")
-    df.printSchema()
+    df.describe()
     sparkSession.sql("select * from test1").show()
     sparkSession.sql("drop table if exists index_test_13")
     val df1=sparkSession.sql("create index index_test_13 on table test1 (name) using org.apache.spark.sql.index")
@@ -193,6 +193,7 @@ object SparkSQLTest {
     val df = sparkSession.read.json("examples/src/main/resources4/")
     df.createOrReplaceTempView("articles")
     df.printSchema()
+    sparkSession.sql("desc articles").show()
     //sparkSession.sql("select * from articles").show()
     sparkSession.sql("drop table if exists articles_index")
     val df1=sparkSession.sql("create index articles_index on table articles (title,body) using org.apache.spark.sql.index")
@@ -221,10 +222,17 @@ object SparkSQLTest {
     df1.explain(true)
     df1.show()
   }
+  private def test20(sparkSession: SparkSession) : Unit={
+    sparkSession.sql("drop table if exists usent_corpus_all")
+    sparkSession.sql("create table if not exists usent_corpus_all (document string comment 'document content') ROW FORMAT DELIMITED FIELDS TERMINATED BY '\\t' LINES TERMINATED BY '---END.OF.DOCUMENT---'")
+//    sparkSession.sql("load data local inpath '/home/cuiguangfan/xingkong/DataSets/WestburyLab.NonRedundant.UsenetCorpus.txt' " +
+//      "into table usent_corpus_all")
+    sparkSession.sql("select count(*) from usent_corpus_all")
+  }
   def main(args: Array[String]) {
     // $example on:init_session$
     val spark = SparkSession
-      .builder().master("local")
+      .builder().master("local[2]")
       .appName("Spark SQL basic example")
       .enableHiveSupport()
       .getOrCreate()       //.config("spark.some.config.option", "some-value")
