@@ -116,6 +116,29 @@ case class AnalyzeCreateTable(sparkSession: SparkSession) extends Rule[LogicalPl
       val partitionColsChecked = checkPartitionColumns(schema, tableDesc)
       val bucketColsChecked = checkBucketColumns(schema, partitionColsChecked)
       c.copy(tableDesc = bucketColsChecked, query = analyzedQuery)
+
+    case c @ CreateIndexTable(tableDesc, sourceTable, mode, columns, query) =>
+      val analyzedQuery = query.map { q =>
+        // Analyze the query in CTAS and then we can do the normalization and checking.
+        val qe = sparkSession.sessionState.executePlan(q)
+        qe.assertAnalyzed()
+        qe.analyzed
+      }
+      val schema = if (analyzedQuery.isDefined) {
+        analyzedQuery.get.schema
+      } else {
+        tableDesc.schema
+      }
+      val columnNames = if (sparkSession.sessionState.conf.caseSensitiveAnalysis) {
+        schema.map(_.name)
+      } else {
+        schema.map(_.name.toLowerCase)
+      }
+      checkDuplication(columnNames, "table definition of " + tableDesc.identifier)
+
+      val partitionColsChecked = checkPartitionColumns(schema, tableDesc)
+      val bucketColsChecked = checkBucketColumns(schema, partitionColsChecked)
+      c.copy(targetTableDesc = bucketColsChecked, query = analyzedQuery)
   }
 
   private def checkPartitionColumns(schema: StructType, tableDesc: CatalogTable): CatalogTable = {

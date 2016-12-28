@@ -27,7 +27,7 @@ import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.sort.SortShuffleManager
 import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
-import org.apache.spark.sql.catalyst.expressions.{AttributeReference, Descending, GenericMutableRow, GenericRowWithSchema, MutableRow, SortOrder, SpecificMutableRow, UnsafeProjection}
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, Descending, GenericInternalRow, GenericRowWithSchema, SortOrder, SpecificInternalRow, UnsafeProjection}
 import org.apache.spark.sql.catalyst.plans.physical.{Partitioning, SinglePartition}
 import org.apache.spark.sql.execution.{PartitionIdPassthrough, RDDConversions, ShuffledRowRDD, UnsafeRowSerializer}
 import org.apache.spark.sql.execution.datasources.index.lucenerdd._
@@ -132,7 +132,7 @@ case class IndexRelation(
             val iterator = rdd1Iterator.zipWithIndex.filter(pair =>
               map.contains(pair._2)).map(pair => (pair._1, map.get(pair._2)))
             val numColumns = extendedSchemaDTList.length
-            val mutableRow = new GenericMutableRow(numColumns)
+            val mutableRow = new GenericInternalRow(numColumns)
             val converters = extendedSchemaDTList.map(
               CatalystTypeConverters.createToCatalystConverter)
             iterator.map { r =>
@@ -235,26 +235,26 @@ case class IndexRelation(
 
     dependency
   }
-  private type IndexValueGetter = (IndexableField, MutableRow, Int) => Unit
+  private type IndexValueGetter = (IndexableField, InternalRow, Int) => Unit
 
   private def makeGetters(schema: StructType): Array[IndexValueGetter] =
     schema.fields.map(sf => makeGetter(sf.dataType))
 
   private def makeGetter(dt: DataType): IndexValueGetter = dt match {
     case IntegerType =>
-      (field: IndexableField, row: MutableRow, pos: Int) =>
+      (field: IndexableField, row: InternalRow, pos: Int) =>
       row.setInt(pos, field.numericValue.intValue)
     case LongType =>
-      (field: IndexableField, row: MutableRow, pos: Int) =>
+      (field: IndexableField, row: InternalRow, pos: Int) =>
         row.setLong(pos, field.numericValue.longValue)
     case DoubleType =>
-      (field: IndexableField, row: MutableRow, pos: Int) =>
+      (field: IndexableField, row: InternalRow, pos: Int) =>
         row.setDouble(pos, field.numericValue.doubleValue)
     case FloatType =>
-      (field: IndexableField, row: MutableRow, pos: Int) =>
+      (field: IndexableField, row: InternalRow, pos: Int) =>
         row.setFloat(pos, field.numericValue.floatValue)
     case StringType =>
-      (field: IndexableField, row: MutableRow, pos: Int) =>
+      (field: IndexableField, row: InternalRow, pos: Int) =>
         row.update(pos, UTF8String.fromString(field.stringValue))
     case _ =>
       throw new IllegalArgumentException(s"Unsupported index type ${dt.simpleString}")
@@ -272,7 +272,7 @@ case class IndexRelation(
 
       private[this] val getters: Array[IndexValueGetter] = makeGetters(extendedSchema)
       logInfo(s"extendedSchema: ${extendedSchema}")
-      private[this] val mutableRow = new SpecificMutableRow(
+      private[this] val mutableRow = new SpecificInternalRow(
         extendedSchema.fields.map(x => x.dataType))
       override protected def close(): Unit = {
         logInfo(s"SparkScoreDocsToSparkInternalRows finished at $iterator")

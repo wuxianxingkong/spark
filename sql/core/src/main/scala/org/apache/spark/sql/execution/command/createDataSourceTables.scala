@@ -318,7 +318,7 @@ case class CreateIndexTableCommand(
       logInfo("Pay attention, maybe we need just set " +
         "path to table.identifier without prefix sessionState.catalog.defaultTablePath")
       // sessionState.catalog.defaultTablePath(table.identifier) -> table.identifier
-      table.storage.properties + ("path" -> (table.identifier.identifier
+      table.storage.properties + ("indexPath" -> (table.identifier.identifier
         +"_00index")) + ("indexColumns" -> columns.mkString(",")) + {
         query match {
           case project: Project => ("quickway" -> "no")

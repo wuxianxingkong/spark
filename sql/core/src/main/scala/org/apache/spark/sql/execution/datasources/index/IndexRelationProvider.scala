@@ -30,7 +30,7 @@ class IndexRelationProvider extends RelationProvider with CreatableRelationProvi
       sqlContext: SQLContext,
       parameters: Map[String, String]): BaseRelation = {
     // This method is for reading
-    val tableName = parameters.getOrElse("path", sys.error("Index path isn't specified..."))
+    val tableName = parameters.getOrElse("indexPath", sys.error("Index path isn't specified..."))
     val sourceTable = parameters.getOrElse("sourceTable",
       sys.error("SourceTable path isn't specified..."))
     IndexRelation(parameters, tableName, sourceTable, null, sqlContext.sparkSession)
@@ -39,7 +39,7 @@ class IndexRelationProvider extends RelationProvider with CreatableRelationProvi
                               parameters: Map[String, String],
                               schema: StructType): BaseRelation = {
     // This method is for reading with user specified schema
-    val tableName = parameters.getOrElse("path", sys.error("Index path isn't specified..."))
+    val tableName = parameters.getOrElse("indexPath", sys.error("Index path isn't specified..."))
     val sourceTable = parameters.getOrElse("sourceTable",
       sys.error("SourceTable path isn't specified..."))
     IndexRelation(parameters, tableName, sourceTable, schema, sqlContext.sparkSession)
@@ -51,7 +51,7 @@ class IndexRelationProvider extends RelationProvider with CreatableRelationProvi
       parameters: Map[String, String],
       data: DataFrame): BaseRelation = {
     // This method is for writing data into index
-    val tableName = parameters.getOrElse("path", sys.error("Index path isn't specified..."))
+    val tableName = parameters.getOrElse("indexPath", sys.error("Index path isn't specified..."))
     val sourceTable = parameters.getOrElse("sourceTable",
       sys.error("SourceTable path isn't specified..."))
     val indexRelation: IndexRelation = new IndexRelation(

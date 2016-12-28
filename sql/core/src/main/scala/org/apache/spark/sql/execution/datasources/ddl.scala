@@ -45,12 +45,12 @@ case class CreateIndexTable(
       sourceTable: TableIdentifier,
       mode: SaveMode,
       colums: Seq[String],
-      sourceRelation: LogicalPlan)
-  extends LogicalPlan with Command {
+      query: Option[LogicalPlan])
+  extends Command {
   assert(targetTableDesc.provider.isDefined, "The table to be created must have a provider.")
 
 
-  override def innerChildren: Seq[QueryPlan[_]] = Option(sourceRelation).toSeq
+  override def innerChildren: Seq[QueryPlan[_]] = query.toSeq
 }
 
 /**

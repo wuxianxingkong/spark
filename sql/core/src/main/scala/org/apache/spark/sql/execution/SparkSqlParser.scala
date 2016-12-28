@@ -20,6 +20,7 @@ package org.apache.spark.sql.execution
 import scala.collection.JavaConverters._
 import org.antlr.v4.runtime.{ParserRuleContext, Token}
 import org.antlr.v4.runtime.tree.TerminalNode
+import org.apache.spark.sql.catalyst.analysis.{UnresolvedAlias, UnresolvedRelation}
 import org.apache.spark.sql.{AnalysisException, SaveMode}
 import org.apache.spark.sql.catalyst.{FunctionIdentifier, TableIdentifier}
 import org.apache.spark.sql.catalyst.catalog._
@@ -374,7 +375,7 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
       sourceTable,
       SaveMode.Overwrite,
       columns,
-      Project(namedExpressions, UnresolvedRelation(sourceTable, None)))
+      Some(Project(namedExpressions, UnresolvedRelation(sourceTable, None))))
   }
   /**
    * Create a data source table, returning a [[CreateTable]] logical plan.
