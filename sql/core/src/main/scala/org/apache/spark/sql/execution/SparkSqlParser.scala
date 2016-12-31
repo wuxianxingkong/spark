@@ -352,16 +352,22 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
       case e: NamedExpression => e
       case e: Expression => UnresolvedAlias(e)
     }
-    val provider = ctx.tableProvider.qualifiedName.getText
+    val tableProvider =
+      if (ctx.tableProvider != null) ctx.tableProvider.qualifiedName.getText
+      else "org.apache.spark.sql.index"
     val targetTableDesc = CatalogTable(
       identifier = targetTable,
       tableType = CatalogTableType.MANAGED,
       storage = CatalogStorageFormat.empty.copy(properties = Map.empty),
       schema = new StructType,
-      provider = Some(provider),
+      provider = Some(tableProvider),
       partitionColumnNames = Array.empty[String],
       bucketSpec = None
     )
+    // If there is no stategyProvider, we use default strategy:index designed columns
+    val strategyProvider =
+      if (ctx.strategyProvider != null) ctx.strategyProvider.qualifiedName.getText
+      else "default_strategy"
     // when index directory exists, delete it recursively
     // CreateIndexTable(_, _, relation) , relation is
     // UnresolvedRelation(sourceTable, None)
@@ -375,7 +381,12 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder {
       sourceTable,
       SaveMode.Overwrite,
       columns,
-      Some(Project(namedExpressions, UnresolvedRelation(sourceTable, None))))
+      Some(
+        strategyProvider match{
+          case "quickway" => UnresolvedRelation(sourceTable, None)
+          case _ => Project(namedExpressions, UnresolvedRelation(sourceTable, None))
+        }
+        ))
   }
   /**
    * Create a data source table, returning a [[CreateTable]] logical plan.

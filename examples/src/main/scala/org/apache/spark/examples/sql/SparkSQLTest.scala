@@ -200,7 +200,7 @@ object SparkSQLTest {
     testdf.explain(true)
     sparkSession.sql("select * from test").show()
     sparkSession.sql("drop table if exists articles_index")
-    val df1=sparkSession.sql("create index articles_index on table test (title,body) using org.apache.spark.sql.index")
+    val df1=sparkSession.sql("create index articles_index on table test (title,body) using org.apache.spark.sql.index STRATEGY quickway")
     df1.explain(true)
 //    val df2 = sparkSession.sql("select * from articles_index where queryparser('nothisfield','body:(Security implications of running MySQL as root) AND title:(security)','3')")
     val df2 = sparkSession.sql("select * from articles_index where queryparser('nothisfield','body:database','3')")

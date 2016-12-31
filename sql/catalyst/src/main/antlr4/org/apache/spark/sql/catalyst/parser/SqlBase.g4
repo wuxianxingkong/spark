@@ -152,7 +152,7 @@ statement
     | SET ROLE .*?                                                     #failNativeCommand
     | SET .*?                                                          #setConfiguration
     | RESET                                                            #resetConfiguration
-    | CREATE INDEX index=tableIdentifier ON TABLE source=tableIdentifier '(' namedExpressionSeq ')' tableProvider  #createIndex
+    | CREATE INDEX index=tableIdentifier ON TABLE source=tableIdentifier '(' namedExpressionSeq ')' tableProvider? strategyProvider?  #createIndex
     | unsupportedHiveNativeCommands .*?                                #failNativeCommand
     ;
 
@@ -267,6 +267,10 @@ namedQuery
 
 tableProvider
     : USING qualifiedName
+    ;
+
+strategyProvider
+    : STRATEGY qualifiedName
     ;
 
 tablePropertyList
@@ -861,6 +865,7 @@ DISTRIBUTE: 'DISTRIBUTE';
 OVERWRITE: 'OVERWRITE';
 TRANSFORM: 'TRANSFORM';
 REDUCE: 'REDUCE';
+STRATEGY: 'STRATEGY';
 USING: 'USING';
 SERDE: 'SERDE';
 SERDEPROPERTIES: 'SERDEPROPERTIES';
