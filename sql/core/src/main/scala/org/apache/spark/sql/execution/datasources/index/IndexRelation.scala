@@ -300,6 +300,7 @@ case class IndexRelation(
       val indexColumns_string = parameters.getOrElse("indexColumns",
         sys.error("Index path isn't specified..."))
       val indexColumns = indexColumns_string.split(",")
+      logInfo(s"First, delete existing index path recursively: ${tableName}...")
       val rdd = LuceneRDD(data, tableName, indexColumns.toSeq,
         show(parameters.get("quickway")).equals("yes"))
       rdd.count()

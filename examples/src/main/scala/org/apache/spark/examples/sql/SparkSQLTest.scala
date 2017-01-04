@@ -233,6 +233,33 @@ object SparkSQLTest {
 //      "into table usent_corpus_all")
     sparkSession.sql("select count(*) from usent_corpus_all")
   }
+  private def test21(sparkSession: SparkSession) : Unit={
+    val prefix="usenet_corpus"
+    // 第几次实验
+    val test_index=0
+    // 重分区数量
+    val repartitionNum=3
+
+    val df = sparkSession.read.format("jdbc").option("url", "jdbc:mysql://133.133.134.118/test?serverTimezone=UTC").option("driver", "com.mysql.jdbc.Driver").option("dbtable", prefix+"_"+test_index).option("user", "root").option("password", "123456").load()
+
+    df.createOrReplaceTempView(prefix+"_"+test_index)
+    println(df.rdd.partitions.length)
+    sparkSession.sql("select * from usenet_corpus_0 limit 10").show()
+
+
+    val df1 = df.repartition(repartitionNum)
+    df1.createOrReplaceTempView(prefix+"_"+test_index+"_"+repartitionNum)
+    sparkSession.sql("drop table if exists "+prefix+"_"+test_index+"_"+repartitionNum+"_test")
+    sparkSession.sql("create table "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+" as select * from "+prefix+"_"+test_index+"_"+repartitionNum)
+    sparkSession.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test").show()
+    sparkSession.sql("drop table if exists "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index")
+
+    val df2=sparkSession.sql("create index "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index"+" on table "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"(body) using org.apache.spark.sql.index STRATEGY quickway")
+
+    val df3 = sparkSession.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index"+" where queryparser('nothisfield','body:person','3')")
+
+    df3.show()
+  }
   def main(args: Array[String]) {
     // $example on:init_session$
     val spark = SparkSession

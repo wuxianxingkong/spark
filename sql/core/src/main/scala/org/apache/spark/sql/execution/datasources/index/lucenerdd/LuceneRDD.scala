@@ -296,7 +296,7 @@ class LuceneRDD[T: ClassTag](
   }
 }
 
-object LuceneRDD {
+object LuceneRDD{
 
   /**
    * Instantiate a LuceneRDD given an RDD[T]
@@ -308,6 +308,11 @@ object LuceneRDD {
   def apply[T : ClassTag](conf: Configuration, elems: RDD[T], tableName: String)
     (implicit conv: T => Document): LuceneRDD[T] = {
     val serialConf = new SeriConfiguration(conf)
+    val deletePath = new Path(tableName)
+    val deleteDf = FileSystem.get(conf)
+    if(deleteDf.exists(deletePath)) {
+      deleteDf.delete(deletePath, true)
+    }
     val partitions = elems.mapPartitions[AbstractLuceneRDDPartition[T]](
       iter => Iterator(LuceneRDDPartition(iter, serialConf, tableName, Status.Rewrite)),
       preservesPartitioning = true)
@@ -326,6 +331,11 @@ object LuceneRDD {
       tableName: String, indexColumns: Seq[String], quickWay: Boolean)
       : LuceneRDD[Row] = {
     val serialConf = new SeriConfiguration(conf)
+    val deletePath = new Path(tableName)
+    val deleteDf = FileSystem.get(conf)
+    if(deleteDf.exists(deletePath)) {
+      deleteDf.delete(deletePath, true)
+    }
     val partitions = elems.mapPartitionsWithIndex[AbstractLuceneRDDPartition[Row]](
       (index, iterator) =>
         Iterator(LuceneRDDPartition(indexColumns, quickWay: Boolean, index, iterator, serialConf,

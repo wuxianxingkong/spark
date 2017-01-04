@@ -47,17 +47,17 @@ private[lucenerdd] class LuceneRDDPartition[T]
   extends AbstractLuceneRDDPartition[T]
   with IndexWithTaxonomyWriter {
 
-  logInfo("Instance is created...")
-  status match {
-    case Status.Rewrite =>
-      val deletePath = new Path(path)
-      val deleteDf = FileSystem.get(conf)
-      if(deleteDf.exists(deletePath)) {
-        logInfo(s"Delete existing path recursively: ${deletePath}...")
-        deleteDf.delete(deletePath, true)
-      }
-    case _ =>
-  }
+  logInfo("Instance(partition-${partitionIndex}) is created...")
+//  status match {
+//    case Status.Rewrite =>
+//      val deletePath = new Path(path)
+//      val deleteDf = FileSystem.get(conf)
+//      if(deleteDf.exists(deletePath)) {
+//        logInfo(s"Delete existing path recursively: ${deletePath}...")
+//        deleteDf.delete(deletePath, true)
+//      }
+//    case _ =>
+//  }
   val time = System.currentTimeMillis
 
 
@@ -100,33 +100,33 @@ private[lucenerdd] class LuceneRDDPartition[T]
   status match {
     case Status.Rewrite =>
       val startTime = new DateTime(System.currentTimeMillis())
-      logInfo(s"Indexing process initiated at ${startTime}...")
+      logInfo(s"Indexing process(partition-${partitionIndex}) initiated at ${startTime}...")
       iterIndex.foreach { case elem =>
         // (implicitly) convert type T to Lucene document
-        logInfo(s"Process data: ${elem}...")
+        logInfo(s"Process data(partition-${partitionIndex}): ${elem}...")
         val doc = docConversion(elem)
         indexWriter.addDocument(FacetsConfig.build(taxoWriter, doc))
       }
       val endTime = new DateTime(System.currentTimeMillis())
-      logInfo(s"Indexing process completed at ${endTime}...")
-      logInfo(s"Indexing process took ${(endTime.getMillis
+      logInfo(s"Indexing process(partition-${partitionIndex}) completed at ${endTime}...")
+      logInfo(s"Indexing process(partition-${partitionIndex}) took ${(endTime.getMillis
         - startTime.getMillis) / 1000} seconds...")
 
       // Close the indexWriter and taxonomyWriter (for faceted search)
       closeAllWriters()
-      logDebug("Closing index writers...")
+      logDebug("Closing index writers(partition-${partitionIndex})...")
     case Status.Exists =>
-      logInfo(s"No need index built from exiting index")
+      logInfo(s"No need index built from exiting index(partition-${partitionIndex})")
   }
 
 
 
-  logDebug("Instantiating index/facet readers")
+  logDebug("Instantiating index/facet readers(partition-${partitionIndex})")
   private val indexReader = DirectoryReader.open(IndexDir)
   private val indexSearcher = new IndexSearcher(indexReader)
   private val taxoReader = new DirectoryTaxonomyReader(TaxonomyDir)
-  logDebug("Index readers instantiated successfully")
-  logInfo(s"Indexed ${size} documents")
+  logDebug("Index readers instantiated successfully(partition-${partitionIndex})")
+  logInfo(s"Indexed ${size} documents(partition-${partitionIndex})")
 
   override def fields(): Set[String] = {
     LuceneQueryHelpers.fields(indexSearcher)
