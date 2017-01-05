@@ -47,7 +47,7 @@ private[lucenerdd] class LuceneRDDPartition[T]
   extends AbstractLuceneRDDPartition[T]
   with IndexWithTaxonomyWriter {
 
-  logInfo("Instance(partition-${partitionIndex}) is created...")
+  logInfo(s"Instance(partition-${partitionIndex}) is created...")
 //  status match {
 //    case Status.Rewrite =>
 //      val deletePath = new Path(path)
@@ -103,7 +103,7 @@ private[lucenerdd] class LuceneRDDPartition[T]
       logInfo(s"Indexing process(partition-${partitionIndex}) initiated at ${startTime}...")
       iterIndex.foreach { case elem =>
         // (implicitly) convert type T to Lucene document
-        logInfo(s"Process data(partition-${partitionIndex}): ${elem}...")
+        // logInfo(s"Process data(partition-${partitionIndex}): ${elem}...")
         val doc = docConversion(elem)
         indexWriter.addDocument(FacetsConfig.build(taxoWriter, doc))
       }

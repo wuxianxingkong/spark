@@ -200,7 +200,7 @@ object SparkSQLTest {
     testdf.explain(true)
     sparkSession.sql("select * from test").show()
     sparkSession.sql("drop table if exists articles_index")
-    val df1=sparkSession.sql("create index articles_index on table test (title,body) using org.apache.spark.sql.index STRATEGY quickway")
+    val df1=sparkSession.sql("create index articles_index on table test (title,body) using org.apache.spark.sql.index")
     df1.explain(true)
 //    val df2 = sparkSession.sql("select * from articles_index where queryparser('nothisfield','body:(Security implications of running MySQL as root) AND title:(security)','3')")
     val df2 = sparkSession.sql("select * from articles_index where queryparser('nothisfield','body:database','3')")
@@ -233,37 +233,47 @@ object SparkSQLTest {
 //      "into table usent_corpus_all")
     sparkSession.sql("select count(*) from usent_corpus_all")
   }
-  private def test21(sparkSession: SparkSession) : Unit={
+  private def test21(spark: SparkSession) : Unit={
     val prefix="usenet_corpus"
     // 第几次实验
     val test_index=0
     // 重分区数量
     val repartitionNum=3
+    // val path="/home/cuiguangfan/IdeaProjects/ScalaExplorer/"
+//    val df = spark.read.format("jdbc").option("url", "jdbc:mysql://133.133.134.118/test?serverTimezone=UTC").option("driver", "com.mysql.jdbc.Driver").option("dbtable", prefix+"_"+test_index).option("user", "root").option("password", "123456").load()
+//    val df1 = df.repartition(repartitionNum)
+//    df1.write.parquet("/opt/testdata/"+prefix+"_"+test_index+"_"+repartitionNum+"_test")
+    spark.sql("drop table if exists "+prefix+"_"+test_index+"_"+repartitionNum+"_test")
+    spark.sql("create  table "+prefix+"_"+test_index+"_"+repartitionNum+"_test using parquet options (path '/home/cuiguangfan/下载/"+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"')")
+    spark.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test").show()
+    spark.sql("drop table if exists "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index")
 
-    val df = sparkSession.read.format("jdbc").option("url", "jdbc:mysql://133.133.134.118/test?serverTimezone=UTC").option("driver", "com.mysql.jdbc.Driver").option("dbtable", prefix+"_"+test_index).option("user", "root").option("password", "123456").load()
+    spark.sql("create index "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index"+" on table "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"(body) using org.apache.spark.sql.index")
 
-    df.createOrReplaceTempView(prefix+"_"+test_index)
-    println(df.rdd.partitions.length)
-    sparkSession.sql("select * from usenet_corpus_0 limit 10").show()
-
-
-    val df1 = df.repartition(repartitionNum)
-    df1.createOrReplaceTempView(prefix+"_"+test_index+"_"+repartitionNum)
-    sparkSession.sql("drop table if exists "+prefix+"_"+test_index+"_"+repartitionNum+"_test")
-    sparkSession.sql("create table "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+" as select * from "+prefix+"_"+test_index+"_"+repartitionNum)
-    sparkSession.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test").show()
-    sparkSession.sql("drop table if exists "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index")
-
-    val df2=sparkSession.sql("create index "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index"+" on table "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"(body) using org.apache.spark.sql.index STRATEGY quickway")
-
-    val df3 = sparkSession.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index"+" where queryparser('nothisfield','body:person','3')")
-
+    val df3 = spark.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index"+" where queryparser('nothisfield','body:person','3')")
     df3.show()
+  }
+  private def test22(spark: SparkSession) : Unit={
+    val prefix="usenet_corpus"
+    // 第几次实验
+    val test_index=0
+    // 重分区数量
+    val repartitionNum=3
+    // val path="/home/cuiguangfan/IdeaProjects/ScalaExplorer/"
+    //    val df = spark.read.format("jdbc").option("url", "jdbc:mysql://133.133.134.118/test?serverTimezone=UTC").option("driver", "com.mysql.jdbc.Driver").option("dbtable", prefix+"_"+test_index).option("user", "root").option("password", "123456").load()
+    //    val df1 = df.repartition(repartitionNum)
+    //    df1.write.parquet("/opt/testdata/"+prefix+"_"+test_index+"_"+repartitionNum+"_test")
+    spark.sql("drop table if exists "+prefix+"_"+test_index+"_"+repartitionNum+"_test")
+    spark.sql("create  table "+prefix+"_"+test_index+"_"+repartitionNum+"_test using parquet options (path '/home/cuiguangfan/下载/"+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"')")
+    val df = spark.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test")
+    val luceneRDD = LuceneRDD(df,"test_index",Seq[String]("body"),true)
+    val results=luceneRDD.query("nothisfield","body:person",3)
+    results.foreach(println)
   }
   def main(args: Array[String]) {
     // $example on:init_session$
     val spark = SparkSession
-      .builder().master("local[2]")
+      .builder().master("local[*]")
       .appName("Spark SQL basic example")
       .enableHiveSupport()
       .getOrCreate()       //.config("spark.some.config.option", "some-value")
@@ -271,7 +281,7 @@ object SparkSQLTest {
     // For implicit conversions like converting RDDs to DataFrames
     // $example off:init_session$
     println(spark.conf.getAll)
-    test17(spark)
+    test21(spark)
     //    test10(spark)
     spark.stop()
   }

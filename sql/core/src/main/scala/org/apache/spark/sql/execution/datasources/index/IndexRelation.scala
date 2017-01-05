@@ -61,7 +61,11 @@ case class IndexRelation(
 
     val finalSchema = parameters.get("quickway") match {
       case Some("yes") =>
-        LuceneRDD.inferSchema(sparkSession, tableName)
+        StructType(Seq(StructField("docId", IntegerType, true),
+          StructField("score", FloatType, true))
+          ++ sparkSession.table(sourceTable).schema.fields
+          ++ Seq(StructField("partitionIndex", IntegerType, true)))
+        // LuceneRDD.inferSchema(sparkSession, tableName)
       case _ =>
         StructType(Seq(StructField("score", FloatType, true))
           ++ sparkSession.table(sourceTable).schema.fields)
@@ -109,11 +113,14 @@ case class IndexRelation(
       case _ => LuceneRDD.inferSchema(sparkSession, tableName)
     }
 
-
     // Local topK
-    val partitionResult = midResult.mapPartitions[InternalRow](iterator =>
-      sparkScoreDocsToSparkInternalRows(iterator, executorSchema)
+    val partitionResult = midResult.mapPartitions[InternalRow](iterator => {
+        sparkScoreDocsToSparkInternalRows(iterator, executorSchema)
+      }
     )
+//    println("partitionResult:")
+//    val tt = partitionResult
+//    tt.foreach(println)
     val originalRDD = sparkSession.table(sourceTable).rdd
     // Do parallel connect with original data
     println("quickway" + parameters.get("quickway"))
@@ -152,6 +159,9 @@ case class IndexRelation(
         }.asInstanceOf[RDD[InternalRow]]
 
     }
+//    println("connectedData:")
+//    val tt = connectedData
+//    tt.foreach(println)
 //    println("hihi")
 //    connectedData.top(3)(descending).foreach(println)
     // Global topK

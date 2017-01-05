@@ -439,7 +439,8 @@ object LuceneRDD{
       val directory = new HdfsDirectory(fullPath, conf)
       val indexReader = DirectoryReader.open(directory)
       val indexSearcher = new IndexSearcher(indexReader)
-      val allFields = indexSearcher.search(new MatchAllDocsQuery(), 1).scoreDocs.flatMap(x =>
+      val topDocs = indexSearcher.search(new MatchAllDocsQuery(), 1).scoreDocs
+      val allFields = topDocs.flatMap(x =>
         indexSearcher.getIndexReader.document(x.doc).getFields.asScala
       ).map(field =>
         if (field.numericValue() != null) {
