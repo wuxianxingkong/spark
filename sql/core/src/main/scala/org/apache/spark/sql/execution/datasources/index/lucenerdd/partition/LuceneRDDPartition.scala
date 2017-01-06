@@ -58,6 +58,7 @@ private[lucenerdd] class LuceneRDDPartition[T]
 //      }
 //    case _ =>
 //  }
+  // val conf: Configuration = new Configuration()
   val time = System.currentTimeMillis
 
 

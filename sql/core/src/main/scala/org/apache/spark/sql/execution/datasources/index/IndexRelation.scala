@@ -123,7 +123,7 @@ case class IndexRelation(
 //    tt.foreach(println)
     val originalRDD = sparkSession.table(sourceTable).rdd
     // Do parallel connect with original data
-    println("quickway" + parameters.get("quickway"))
+    // println("quickway" + parameters.get("quickway"))
     val connectedData = parameters.get("quickway") match {
       // If yes, just reuse schema, or, infer it
       case Some("yes") =>
@@ -131,16 +131,23 @@ case class IndexRelation(
       case _ =>
         // We use schema with score field
         val extendedSchemaDTList = schema.fields.map(_.dataType)
+        // println("originalRDD_partition_length:" + originalRDD.partitions.length)
         originalRDD.zipPartitions(partitionResult) {
           (rdd1Iterator, rdd2Iterator) => {
             var indexCount: Int = 0
             // Collect index needed to set
             val map = rdd2Iterator.toTraversable.map(row => (row.getInt(0) -> row.getFloat(1))).toMap
+//            println("Collect index needed to set:")
+//            map.foreach(println)
+//            println("Value:")
+//            val tempI = rdd1Iterator
+//            tempI.zipWithIndex.foreach(println)
+//            tempI.zipWithIndex.filter(pair =>
+//              map.contains(pair._2)).foreach(println)
             val iterator = rdd1Iterator.zipWithIndex.filter(pair =>
               map.contains(pair._2)).map(pair => (pair._1, map.get(pair._2)))
             val numColumns = extendedSchemaDTList.length
             // mutableRow会导致后面产生结果被复制两次的问题
-
             val converters = extendedSchemaDTList.map(
               CatalystTypeConverters.createToCatalystConverter)
             iterator.map { r =>
@@ -304,7 +311,7 @@ case class IndexRelation(
   }
   override def insert(data: DataFrame, overwrite: Boolean): Unit = {
 
-
+    sparkSession.sparkContext.objectFile("")
     // quickway == yes means store all column data
 //    if (parameters.contains("quickway") && show(parameters.get("quickway")).equals("yes")) {
       val indexColumns_string = parameters.getOrElse("indexColumns",

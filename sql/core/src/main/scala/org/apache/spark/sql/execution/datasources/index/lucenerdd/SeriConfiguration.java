@@ -10,5 +10,6 @@ import java.io.Serializable;
 public class SeriConfiguration extends Configuration implements Serializable {
     public SeriConfiguration(Configuration other) {
         super(other);
+        //other.set("fs.hdfs.impl.disable.cache", "true");
     }
 }

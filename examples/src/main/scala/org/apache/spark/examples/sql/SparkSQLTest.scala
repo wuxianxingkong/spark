@@ -248,10 +248,18 @@ object SparkSQLTest {
     spark.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test").show()
     spark.sql("drop table if exists "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index")
 
-    spark.sql("create index "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index"+" on table "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"(body) using org.apache.spark.sql.index")
+    spark.sql("create index "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index"+" on table "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"(body) using org.apache.spark.sql.index strategy quickway")
 
     val df3 = spark.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index"+" where queryparser('nothisfield','body:person','3')")
+//    df3.explain(true)
     df3.show()
+    spark.sql("drop table if exists "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index_noquickway")
+
+    spark.sql("create index "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index_noquickway"+" on table "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"(body) using org.apache.spark.sql.index")
+
+    val df4 = spark.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"_index_noquickway"+" where queryparser('nothisfield','body:person','3')")
+    //    df3.explain(true)
+    df4.show()
   }
   private def test22(spark: SparkSession) : Unit={
     val prefix="usenet_corpus"
@@ -275,7 +283,7 @@ object SparkSQLTest {
     val spark = SparkSession
       .builder().master("local[*]")
       .appName("Spark SQL basic example")
-      .enableHiveSupport()
+      //.enableHiveSupport()
       .getOrCreate()       //.config("spark.some.config.option", "some-value")
 
     // For implicit conversions like converting RDDs to DataFrames

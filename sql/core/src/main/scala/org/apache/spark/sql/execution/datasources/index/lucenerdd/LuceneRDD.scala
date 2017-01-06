@@ -308,6 +308,7 @@ object LuceneRDD{
   def apply[T : ClassTag](conf: Configuration, elems: RDD[T], tableName: String)
     (implicit conv: T => Document): LuceneRDD[T] = {
     val serialConf = new SeriConfiguration(conf)
+    serialConf.setBoolean("fs.hdfs.impl.disable.cache", true);
     val deletePath = new Path(tableName)
     val deleteDf = FileSystem.get(conf)
     if(deleteDf.exists(deletePath)) {
@@ -331,6 +332,7 @@ object LuceneRDD{
       tableName: String, indexColumns: Seq[String], quickWay: Boolean)
       : LuceneRDD[Row] = {
     val serialConf = new SeriConfiguration(conf)
+    serialConf.setBoolean("fs.hdfs.impl.disable.cache", true);
     val deletePath = new Path(tableName)
     val deleteDf = FileSystem.get(conf)
     if(deleteDf.exists(deletePath)) {
@@ -363,8 +365,13 @@ object LuceneRDD{
         directory.isDirectory && directory.getPath.toString.contains("indexDirectory"))
       // Sort by partitionIndex asc
       val indexPaths = indexPathsFiltered.map(directory =>
-        directory.getPath.toString).sortWith(_.toLowerCase < _.toLowerCase)
+        directory.getPath.toString).sortWith(
+        (s, t) => s.substring(s.indexOf("indexDirectory") + 15,
+          s.indexOf(".", s.indexOf("indexDirectory") + 15)).toInt.
+          compareTo(t.substring(t.indexOf("indexDirectory") + 15,
+            t.indexOf(".", t.indexOf("indexDirectory") + 15)).toInt) < 0)
       val serialConf = new SeriConfiguration(conf)
+      serialConf.setBoolean("fs.hdfs.impl.disable.cache", true);
       val rdd = sparkSession.sparkContext.parallelize[String](
         indexPaths.toList.asInstanceOf[Seq[String]], indexPaths.toSeq.size)
       val partitions = rdd.mapPartitionsWithIndex[AbstractLuceneRDDPartition[String]](

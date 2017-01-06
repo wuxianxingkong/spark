@@ -537,7 +537,7 @@ case class GreaterThanOrEqual(left: Expression, right: Expression)
 }
 
 case class TermQuery(field: Expression, queryString: Expression, topK: Expression)
-  extends Expression{
+  extends Expression with Predicate{
 
   override def toString: String = s"[*Term* field:$field, query:$queryString, topK:$topK]"
 
@@ -577,15 +577,13 @@ case class TermQuery(field: Expression, queryString: Expression, topK: Expressio
 
 case class FuzzyQuery(field: Expression, queryString: Expression,
       maxEdits: Expression, topK: Expression)
-      extends Expression {
+      extends Expression with Predicate{
 
   override def toString: String = s"[*Fuzzy* field:$field, query:$queryString, topK:$topK]"
 
   override def children: Seq[Expression] = Seq(field, queryString, maxEdits, topK)
 
   override def nullable: Boolean = false
-
-  override def dataType: DataType = BooleanType
 
   /** Returns the result of evaluating this expression on a given input Row */
   override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
@@ -618,15 +616,13 @@ case class FuzzyQuery(field: Expression, queryString: Expression,
 }
 
 case class PhraseQuery(field: Expression, queryString: Expression, topK: Expression)
-  extends Expression {
+  extends Expression with Predicate{
 
   override def toString: String = s"[*Phrase* field:$field, query:$queryString, topK:$topK]"
 
   override def children: Seq[Expression] = Seq(field, queryString, topK)
 
   override def nullable: Boolean = false
-
-  override def dataType: DataType = BooleanType
 
   /** Returns the result of evaluating this expression on a given input Row */
   override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
@@ -657,15 +653,13 @@ case class PhraseQuery(field: Expression, queryString: Expression, topK: Express
 }
 
 case class PrefixQuery(field: Expression, queryString: Expression, topK: Expression)
-  extends Expression {
+  extends Expression with Predicate{
 
   override def toString: String = s"[*Prefix* field:$field, query:$queryString, topK:$topK]"
 
   override def children: Seq[Expression] = Seq(field, queryString, topK)
 
   override def nullable: Boolean = false
-
-  override def dataType: DataType = BooleanType
 
   /** Returns the result of evaluating this expression on a given input Row */
   override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
@@ -696,7 +690,7 @@ case class PrefixQuery(field: Expression, queryString: Expression, topK: Express
 }
 
 case class QueryParser(defaultField: Expression, queryString: Expression, topK: Expression)
-  extends Expression {
+  extends Expression with Predicate{
 
   override def toString: String =
     s"[*QueryParser* field:$defaultField, query:$queryString, topK:$topK]"
@@ -704,8 +698,6 @@ case class QueryParser(defaultField: Expression, queryString: Expression, topK: 
   override def children: Seq[Expression] = Seq(defaultField, queryString, topK)
 
   override def nullable: Boolean = false
-
-  override def dataType: DataType = BooleanType
 
   /** Returns the result of evaluating this expression on a given input Row */
   override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
