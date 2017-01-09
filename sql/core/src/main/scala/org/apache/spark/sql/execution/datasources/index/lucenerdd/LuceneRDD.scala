@@ -264,10 +264,10 @@ class LuceneRDD[T: ClassTag](
     partitionMapper(_.phraseQuery(fieldName, query, topK), topK)
   }
 
-  override def count(): Long = {
-    logInfo("Count action requested")
-    partitionsRDD.map(_.size).reduce(_ + _)
-  }
+//  override def count(): Long = {
+//    logInfo("Count action requested")
+//    partitionsRDD.map(_.size).reduce(_ + _)
+//  }
 
   /** RDD compute method. */
   override def compute(part: Partition, context: TaskContext): Iterator[T] = {

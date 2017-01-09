@@ -38,6 +38,7 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.{BoundedPriorityQueue, CompletionIterator, MutablePair, NextIterator}
+import org.joda.time.DateTime
 
 
 case class IndexRelation(
@@ -318,9 +319,16 @@ case class IndexRelation(
         sys.error("Index path isn't specified..."))
       val indexColumns = indexColumns_string.split(",")
       logInfo(s"First, delete existing index path recursively: ${tableName}...")
+      val startTime = new DateTime(System.currentTimeMillis())
       val rdd = LuceneRDD(data, tableName, indexColumns.toSeq,
         show(parameters.get("quickway")).equals("yes"))
+      val midTime = new DateTime(System.currentTimeMillis())
+      logInfo(s"LuceneRDD construction took ${(midTime.getMillis
+      - startTime.getMillis) / 1000} seconds...")
       rdd.count()
+      val endTime = new DateTime(System.currentTimeMillis())
+      logInfo(s"Building indexes took ${(endTime.getMillis
+      - startTime.getMillis) / 1000} seconds...")
 //    } else {
 //      // quickway == false means
 //      // needs connection between original rdd and result rdd
