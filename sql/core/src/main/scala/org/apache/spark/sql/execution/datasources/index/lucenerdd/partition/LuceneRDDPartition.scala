@@ -302,9 +302,8 @@ object  LuceneRDDPartition {
           }
         }
       }
-//      if(!quickWay) {
-        doc.add(new IntField("partitionIndex", partitionIndex, AllFields.notIndex_intFieldType))
-//      }
+      // remove this for simpling logic
+      // doc.add(new IntField("partitionIndex", partitionIndex, AllFields.notIndex_intFieldType))
       doc
     }
     new LuceneRDDPartition[Row](iter)(

@@ -90,20 +90,20 @@ object SparkSQLTest {
     println("result count: " + results.count)
     results.foreach(println)
   }
-  private def test7(sparkSession: SparkSession) : Unit={
-    val elem = Array("fear", "death", "water", "fire", "house")
-      .zipWithIndex.map{ case (str, index) =>
-      FavoriteCaseClass(str, index, 10L, 12.3F, s"${str}@gmail.com")}
-    val rdd = sparkSession.sparkContext.parallelize(elem)
-    val df=sparkSession.createDataFrame(rdd)
-    df.printSchema()
-    val luceneRDD = LuceneRDD(df,"test_test_1")
-    println("print luceneRDD inner:")
-    luceneRDD.count()
-    luceneRDD.foreach(println)
-    val results = luceneRDD.termQuery("name", "water")
-    results.foreach(println)
-  }
+//  private def test7(sparkSession: SparkSession) : Unit={
+//    val elem = Array("fear", "death", "water", "fire", "house")
+//      .zipWithIndex.map{ case (str, index) =>
+//      FavoriteCaseClass(str, index, 10L, 12.3F, s"${str}@gmail.com")}
+//    val rdd = sparkSession.sparkContext.parallelize(elem)
+//    val df=sparkSession.createDataFrame(rdd)
+//    df.printSchema()
+//    val luceneRDD = LuceneRDD(df,"test_test_1")
+//    println("print luceneRDD inner:")
+//    luceneRDD.count()
+//    luceneRDD.foreach(println)
+//    val results = luceneRDD.termQuery("name", "water")
+//    results.foreach(println)
+//  }
   private def test8(sparkSession: SparkSession) : Unit={
     sparkSession.sql("drop table if exists index_test_1")
     val df = sparkSession.read.json("examples/src/main/resources1/")
@@ -170,6 +170,7 @@ object SparkSQLTest {
 
   }
   private def test14(sparkSession: SparkSession) : Unit={
+
     val df = sparkSession.read.json("examples/src/main/resources1/")
     df.createOrReplaceTempView("test1")
     val df1 = sparkSession.sql("select age from test1 where age between 1 and 30")
@@ -196,15 +197,16 @@ object SparkSQLTest {
     sparkSession.sql("desc articles").show()
     sparkSession.sql("select * from articles").show()
     sparkSession.sql("drop table if exists test")
-    val testdf = sparkSession.sql("create table test as select * from articles")
+    val testdf = sparkSession.sql("create  table test as select * from articles")
     testdf.explain(true)
     sparkSession.sql("select * from test").show()
     sparkSession.sql("drop table if exists articles_index")
     val df1=sparkSession.sql("create index articles_index on table test (title,body) using org.apache.spark.sql.index")
     df1.explain(true)
 //    val df2 = sparkSession.sql("select * from articles_index where queryparser('nothisfield','body:(Security implications of running MySQL as root) AND title:(security)','3')")
-    val df2 = sparkSession.sql("select * from articles_index where queryparser('nothisfield','body:database','3')")
-//    df2.explain(true)
+//    sparkSession.sql("select score from articles_index where queryparser('nothisfield','body:database','3')").explain(true)
+    val df2 = sparkSession.sql("select body,id from articles_index where queryparser('nothisfield','body:database','3')")
+    df2.explain(true)
     df2.show()
 //    val df = sparkSession.read.json("examples/src/main/resources4/")
 //    df.printSchema()
@@ -236,9 +238,9 @@ object SparkSQLTest {
   private def test21(spark: SparkSession) : Unit={
     val prefix="usenet_corpus"
     // 第几次实验
-    val test_index=0
+    val test_index=25343
     // 重分区数量
-    val repartitionNum=3
+    val repartitionNum=24
     // val path="/home/cuiguangfan/IdeaProjects/ScalaExplorer/"
 //    val df = spark.read.format("jdbc").option("url", "jdbc:mysql://133.133.134.118/test?serverTimezone=UTC").option("driver", "com.mysql.jdbc.Driver").option("dbtable", prefix+"_"+test_index).option("user", "root").option("password", "123456").load()
 //    val df1 = df.repartition(repartitionNum)
@@ -262,6 +264,7 @@ object SparkSQLTest {
     df4.show()
   }
   private def test22(spark: SparkSession) : Unit={
+
     val prefix="usenet_corpus"
     // 第几次实验
     val test_index=0
@@ -274,25 +277,29 @@ object SparkSQLTest {
     spark.sql("drop table if exists "+prefix+"_"+test_index+"_"+repartitionNum+"_test")
     spark.sql("create  table "+prefix+"_"+test_index+"_"+repartitionNum+"_test using parquet options (path '/home/cuiguangfan/下载/"+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"')")
     val df = spark.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test")
+    df.write.insertInto("")
     val luceneRDD = LuceneRDD(df,"test_index",Seq[String]("body"),true)
     val results=luceneRDD.query("nothisfield","body:person",3)
     results.foreach(println)
+  }
+  private def test23(spark: SparkSession) : Unit={
+    val df = spark.read.parquet("/home/cuiguangfan/下载/tt")
+    println(df.rdd.partitions.length)
   }
   def main(args: Array[String]) {
     // $example on:init_session$
     val spark = SparkSession
       .builder().master("local[*]")
       .appName("Spark SQL basic example")
-      //.enableHiveSupport()
+      .enableHiveSupport()
       .getOrCreate()       //.config("spark.some.config.option", "some-value")
 
     // For implicit conversions like converting RDDs to DataFrames
     // $example off:init_session$
     println(spark.conf.getAll)
-    test21(spark)
+    test17(spark)
     //    test10(spark)
     spark.stop()
   }
 }
-case class FavoriteCaseClass(name: String, age: Int, myLong: Long, myFloat: Float, email: String)
 // scalastyle:on
