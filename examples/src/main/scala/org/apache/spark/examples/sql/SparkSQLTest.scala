@@ -24,7 +24,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.internal.SessionState
 // import org.apache.spark.sql.execution.datasources.index.lucenerdd.LuceneRDD
-import org.apache.spark.sql.execution.datasources.index.lucenerdd._
+import org.apache.spark.sql.execution.datasources.index.searchrdd._
 import scala.reflect.ClassTag
 // $example on:init_session$
 import org.apache.spark.sql.SparkSession
@@ -75,7 +75,7 @@ object SparkSQLTest {
   }
   private def test5(sparkSession: SparkSession) : Unit={
     val array = Array("Hello", "world")
-    val rdd = LuceneRDD(sparkSession.sparkContext, array, "index_dir_1")
+    val rdd = SearchRDD(sparkSession.sparkContext, array, "index_dir_1")
     val count = rdd.count
     val result = rdd.termQuery("_1", "hello", 10)
     result.foreach(println)
@@ -84,7 +84,7 @@ object SparkSQLTest {
     val df = sparkSession.read.json("examples/src/main/resources1/")
     // val df=sparkSession.createDataFrame(rdd)
     df.printSchema()
-    val luceneRDD = LuceneRDD(df,"test_test_1")
+    val luceneRDD = SearchRDD(df,"test_test_1")
 //    val results = luceneRDD.termQuery("name", "justin")
     val results = luceneRDD.termQuery("age", "30")
     println("result count: " + results.count)
@@ -115,7 +115,7 @@ object SparkSQLTest {
   }
   private def test9(sparkSession: SparkSession) : Unit={
     val tableName = "test_test_1"
-    val results = LuceneRDD(sparkSession, tableName).query("name", "just~")
+    val results = SearchRDD(sparkSession, tableName).query("name", "just~")
     println(results.count)
     results.take(5).foreach(println)
   }
@@ -123,7 +123,7 @@ object SparkSQLTest {
     // test index with specified columns
     val df = sparkSession.read.json("examples/src/main/resources3/")
     df.printSchema()
-    val luceneRDD = LuceneRDD(df,"test_test_1",Seq[String]("name"), true)
+    val luceneRDD = SearchRDD(df,"test_test_1",Seq[String]("name"), true)
     val results = luceneRDD.query("name", "just~")
     println("Result nums: " + results.count())
     results.foreach(println)
@@ -134,7 +134,7 @@ object SparkSQLTest {
     val df = sparkSession.read.json("examples/src/main/resources4/")
     df.printSchema()
     df.show()
-    val luceneRDD = LuceneRDD(df,"test_index",Seq[String]("title","body"), true)
+    val luceneRDD = SearchRDD(df,"test_index",Seq[String]("title","body"), true)
     val results = luceneRDD.query("nothisfield","body:database",3)
     results.foreach(println)
     // 如果索引的词是停用词，那么是搜不到的，比如"A"等停用词
@@ -198,14 +198,17 @@ object SparkSQLTest {
     sparkSession.sql("select * from articles").show()
     sparkSession.sql("drop table if exists test")
     val testdf = sparkSession.sql("create  table test as select * from articles")
+
     testdf.explain(true)
     sparkSession.sql("select * from test").show()
     sparkSession.sql("drop table if exists articles_index")
     val df1=sparkSession.sql("create index articles_index on table test (title,body) using org.apache.spark.sql.index")
+    println(df1.rdd.toDebugString)
     df1.explain(true)
 //    val df2 = sparkSession.sql("select * from articles_index where queryparser('nothisfield','body:(Security implications of running MySQL as root) AND title:(security)','3')")
 //    sparkSession.sql("select score from articles_index where queryparser('nothisfield','body:database','3')").explain(true)
     val df2 = sparkSession.sql("select body,id from articles_index where queryparser('nothisfield','body:database','3')")
+    println(df2.rdd.toDebugString)
     df2.explain(true)
     df2.show()
 //    val df = sparkSession.read.json("examples/src/main/resources4/")
@@ -278,7 +281,7 @@ object SparkSQLTest {
     spark.sql("create  table "+prefix+"_"+test_index+"_"+repartitionNum+"_test using parquet options (path '/home/cuiguangfan/下载/"+prefix+"_"+test_index+"_"+repartitionNum+"_test"+"')")
     val df = spark.sql("select * from "+prefix+"_"+test_index+"_"+repartitionNum+"_test")
     df.write.insertInto("")
-    val luceneRDD = LuceneRDD(df,"test_index",Seq[String]("body"),true)
+    val luceneRDD = SearchRDD(df,"test_index",Seq[String]("body"),true)
     val results=luceneRDD.query("nothisfield","body:person",3)
     results.foreach(println)
   }

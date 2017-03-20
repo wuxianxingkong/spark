@@ -589,14 +589,14 @@ case class FuzzyQuery(field: Expression, queryString: Expression,
   override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
 
   /**
-    * Returns Java source code that can be compiled to evaluate this expression.
-    * The default behavior is to call the eval method of the expression. Concrete expression
-    * implementations should override this to do actual code generation.
-    *
-    * @param ctx a [[CodegenContext]]
-    * @param ev  an [[ExprCode]] with unique terms.
-    * @return an [[ExprCode]] containing the Java source code to generate the given expression
-    */
+   * Returns Java source code that can be compiled to evaluate this expression.
+   * The default behavior is to call the eval method of the expression. Concrete expression
+   * implementations should override this to do actual code generation.
+   *
+   * @param ctx a [[CodegenContext]]
+   * @param ev  an [[ExprCode]] with unique terms.
+   * @return an [[ExprCode]] containing the Java source code to generate the given expression
+   */
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val leftGen = field.genCode(ctx)
     val rightGen = queryString.genCode(ctx)
@@ -628,14 +628,14 @@ case class PhraseQuery(field: Expression, queryString: Expression, topK: Express
   override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
 
   /**
-    * Returns Java source code that can be compiled to evaluate this expression.
-    * The default behavior is to call the eval method of the expression. Concrete expression
-    * implementations should override this to do actual code generation.
-    *
-    * @param ctx a [[CodegenContext]]
-    * @param ev  an [[ExprCode]] with unique terms.
-    * @return an [[ExprCode]] containing the Java source code to generate the given expression
-    */
+   * Returns Java source code that can be compiled to evaluate this expression.
+   * The default behavior is to call the eval method of the expression. Concrete expression
+   * implementations should override this to do actual code generation.
+   *
+   * @param ctx a [[CodegenContext]]
+   * @param ev  an [[ExprCode]] with unique terms.
+   * @return an [[ExprCode]] containing the Java source code to generate the given expression
+   */
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val leftGen = field.genCode(ctx)
     val rightGen = queryString.genCode(ctx)
@@ -665,14 +665,14 @@ case class PrefixQuery(field: Expression, queryString: Expression, topK: Express
   override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
 
   /**
-    * Returns Java source code that can be compiled to evaluate this expression.
-    * The default behavior is to call the eval method of the expression. Concrete expression
-    * implementations should override this to do actual code generation.
-    *
-    * @param ctx a [[CodegenContext]]
-    * @param ev  an [[ExprCode]] with unique terms.
-    * @return an [[ExprCode]] containing the Java source code to generate the given expression
-    */
+   * Returns Java source code that can be compiled to evaluate this expression.
+   * The default behavior is to call the eval method of the expression. Concrete expression
+   * implementations should override this to do actual code generation.
+   *
+   * @param ctx a [[CodegenContext]]
+   * @param ev  an [[ExprCode]] with unique terms.
+   * @return an [[ExprCode]] containing the Java source code to generate the given expression
+   */
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val leftGen = field.genCode(ctx)
     val rightGen = queryString.genCode(ctx)
@@ -703,14 +703,14 @@ case class QueryParser(defaultField: Expression, queryString: Expression, topK: 
   override def eval(input: InternalRow): Any = null.asInstanceOf[Any]
 
   /**
-    * Returns Java source code that can be compiled to evaluate this expression.
-    * The default behavior is to call the eval method of the expression. Concrete expression
-    * implementations should override this to do actual code generation.
-    *
-    * @param ctx a [[CodegenContext]]
-    * @param ev  an [[ExprCode]] with unique terms.
-    * @return an [[ExprCode]] containing the Java source code to generate the given expression
-    */
+   * Returns Java source code that can be compiled to evaluate this expression.
+   * The default behavior is to call the eval method of the expression. Concrete expression
+   * implementations should override this to do actual code generation.
+   *
+   * @param ctx a [[CodegenContext]]
+   * @param ev  an [[ExprCode]] with unique terms.
+   * @return an [[ExprCode]] containing the Java source code to generate the given expression
+   */
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val leftGen = defaultField.genCode(ctx)
     val rightGen = queryString.genCode(ctx)

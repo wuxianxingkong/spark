@@ -30,8 +30,8 @@ import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, Descending, GenericInternalRow, GenericRowWithSchema, SortOrder, SpecificInternalRow, UnsafeProjection}
 import org.apache.spark.sql.catalyst.plans.physical.{Partitioning, SinglePartition}
 import org.apache.spark.sql.execution.{PartitionIdPassthrough, RDDConversions, ShuffledRowRDD, UnsafeRowSerializer}
-import org.apache.spark.sql.execution.datasources.index.lucenerdd._
-import org.apache.spark.sql.execution.datasources.index.lucenerdd.models.SparkScoreDoc
+import org.apache.spark.sql.execution.datasources.index.searchrdd._
+import org.apache.spark.sql.execution.datasources.index.searchrdd.models.SparkScoreDoc
 import org.apache.spark.sql.execution.exchange.ShuffleExchange
 import org.apache.spark.sql.{DataFrame, Row, SQLContext, SparkSession}
 import org.apache.spark.sql.sources._
@@ -89,23 +89,23 @@ case class IndexRelation(
     val midResult = filter match {
       case TermQuery(fieldName, query, topK) =>
         globalTopK = topK
-        LuceneRDD(sparkSession, tableName).termQuery(
+        SearchRDD(sparkSession, tableName).termQuery(
           fieldName, query, Integer.valueOf(topK))
       case FuzzyQuery(fieldName, query, maxEdits, topK) =>
         globalTopK = topK
-        LuceneRDD(sparkSession, tableName).fuzzyQuery(
+        SearchRDD(sparkSession, tableName).fuzzyQuery(
           fieldName, query, maxEdits, Integer.valueOf(topK))
       case PhraseQuery(fieldName, query, topK) =>
         globalTopK = topK
-        LuceneRDD(sparkSession, tableName).phraseQuery(
+        SearchRDD(sparkSession, tableName).phraseQuery(
           fieldName, query, Integer.valueOf(topK))
       case PrefixQuery(fieldName, query, topK) =>
         globalTopK = topK
-        LuceneRDD(sparkSession, tableName).prefixQuery(
+        SearchRDD(sparkSession, tableName).prefixQuery(
           fieldName, query, Integer.valueOf(topK))
       case QueryParser(defaultFieldName, query, topK) =>
         globalTopK = topK
-        LuceneRDD(sparkSession, tableName).query(
+        SearchRDD(sparkSession, tableName).query(
           defaultFieldName, query, Integer.valueOf(topK))
       case _ => throw new
           UnsupportedOperationException(s"Cannot support other filter: $this")
@@ -387,7 +387,7 @@ case class IndexRelation(
       val indexColumns = indexColumns_string.split(",")
       logInfo(s"First, delete existing index path recursively: ${tableName}...")
       val startTime = new DateTime(System.currentTimeMillis())
-      val rdd = LuceneRDD(data, tableName, indexColumns.toSeq,
+      val rdd = SearchRDD(data, tableName, indexColumns.toSeq,
         show(parameters.get("quickway")).equals("yes"))
       val midTime = new DateTime(System.currentTimeMillis())
       logInfo(s"LuceneRDD construction took ${(midTime.getMillis
