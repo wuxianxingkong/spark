@@ -26,7 +26,7 @@ import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.Luce
 import org.apache.spark.sql.execution.datasources.index.searchrdd.response.{LuceneRDDResponse, LuceneRDDResponsePartition}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.testing.{FavoriteCaseClass, Person}
 
-class LuceneRDDKryoRegistrator extends KryoRegistrator {
+class SearchRDDKryoRegistrator extends KryoRegistrator {
   def registerClasses(kryo: Kryo): Unit = {
     kryo.register(classOf[SearchRDD[_]])
     kryo.register(classOf[LuceneRDDPartition[_]])
@@ -73,10 +73,10 @@ class LuceneRDDKryoRegistrator extends KryoRegistrator {
 /**
  * Decorator for LuceneRDD Kryo serialization
  */
-object LuceneRDDKryoRegistrator {
+object SearchRDDKryoRegistrator {
   def registerKryoClasses(conf: SparkConf): SparkConf = {
     conf.set("spark.serializer", classOf[KryoSerializer].getName)
-      .set("spark.kryo.registrator", classOf[LuceneRDDKryoRegistrator].getName)
+      .set("spark.kryo.registrator", classOf[SearchRDDKryoRegistrator].getName)
       .set("spark.kryo.registrationRequired", "false")
     /* Set the above to true s.t. all classes are registered with Kryo */
   }
