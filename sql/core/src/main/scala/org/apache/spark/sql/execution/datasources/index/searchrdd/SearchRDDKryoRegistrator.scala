@@ -22,14 +22,14 @@ import org.apache.spark.SparkConf
 import org.apache.spark.serializer.{KryoRegistrator, KryoSerializer}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.facets.FacetedSearchRDD
 import org.apache.spark.sql.execution.datasources.index.searchrdd.models.{SparkDoc, SparkFacetResult, SparkScoreDoc}
-import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.LuceneRDDPartition
+import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.SearchRDDPartition
 import org.apache.spark.sql.execution.datasources.index.searchrdd.response.{LuceneRDDResponse, LuceneRDDResponsePartition}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.testing.{FavoriteCaseClass, Person}
 
 class SearchRDDKryoRegistrator extends KryoRegistrator {
   def registerClasses(kryo: Kryo): Unit = {
     kryo.register(classOf[SearchRDD[_]])
-    kryo.register(classOf[LuceneRDDPartition[_]])
+    kryo.register(classOf[SearchRDDPartition[_]])
     kryo.register(classOf[FacetedSearchRDD[_]])
     kryo.register(classOf[SparkDoc])
     kryo.register(classOf[Number])

@@ -30,7 +30,7 @@ import org.apache.solr.store.hdfs.HdfsDirectory
 import org.apache.spark._
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.{AbstractLuceneRDDPartition, LuceneRDDPartition}
+import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.{AbstractLuceneRDDPartition, SearchRDDPartition}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.models.SparkScoreDoc
 import org.apache.spark.sql.execution.datasources.index.searchrdd.store.Status
 import org.apache.spark.sql.types._
@@ -315,7 +315,7 @@ object SearchRDD{
       deleteDf.delete(deletePath, true)
     }
     val partitions = elems.mapPartitions[AbstractLuceneRDDPartition[T]](
-      iter => Iterator(LuceneRDDPartition(iter, serialConf, tableName, Status.Rewrite)),
+      iter => Iterator(SearchRDDPartition(iter, serialConf, tableName, Status.Rewrite)),
       preservesPartitioning = true)
     new SearchRDD[T](partitions)
   }
@@ -340,7 +340,7 @@ object SearchRDD{
     }
     val partitions = elems.mapPartitionsWithIndex[AbstractLuceneRDDPartition[Row]](
       (index, iterator) =>
-        Iterator(LuceneRDDPartition(indexColumns, quickWay: Boolean, index, iterator, serialConf,
+        Iterator(SearchRDDPartition(indexColumns, quickWay: Boolean, index, iterator, serialConf,
         tableName, Status.Rewrite)),
       preservesPartitioning = true)
     new SearchRDD[Row](partitions)
@@ -377,7 +377,7 @@ object SearchRDD{
       val partitions = rdd.mapPartitionsWithIndex[AbstractLuceneRDDPartition[String]](
         (index, iterator) => {
           val temp = iterator.take(1).next().asInstanceOf[String]
-          Iterator(LuceneRDDPartition(iterator, serialConf, temp, Status.Exists))},
+          Iterator(SearchRDDPartition(iterator, serialConf, temp, Status.Exists))},
         preservesPartitioning = true)
       return new SearchRDD[String](partitions)
     } else {

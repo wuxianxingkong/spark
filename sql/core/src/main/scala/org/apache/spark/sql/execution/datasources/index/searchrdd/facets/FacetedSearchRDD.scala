@@ -24,7 +24,7 @@ import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.execution.datasources.index.searchrdd.SearchRDD
 import org.apache.spark.sql.execution.datasources.index.searchrdd.aggregate.SparkFacetResultMonoid
 import org.apache.spark.sql.execution.datasources.index.searchrdd.models.SparkFacetResult
-import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.{AbstractLuceneRDDPartition, LuceneRDDPartition}
+import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.{AbstractLuceneRDDPartition, SearchRDDPartition}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.response.LuceneRDDResponse
 import org.apache.spark.sql.execution.datasources.index.searchrdd.store.Status
 
@@ -126,7 +126,7 @@ object FacetedSearchRDD {
   def apply[T : ClassTag](elems: RDD[T])
                          (implicit conv: T => Document): FacetedSearchRDD[T] = {
     val partitions = elems.mapPartitions[AbstractLuceneRDDPartition[T]](
-      iter => Iterator(LuceneRDDPartition(iter, null, "", Status.Rewrite)),
+      iter => Iterator(SearchRDDPartition(iter, null, "", Status.Rewrite)),
       preservesPartitioning = true)
     new FacetedSearchRDD[T](partitions)
   }

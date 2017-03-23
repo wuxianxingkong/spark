@@ -39,7 +39,7 @@ import org.apache.spark.sql.execution.datasources.index.searchrdd.store.{IndexWi
 
 import scala.reflect.{ClassTag, _}
 
-private[searchrdd] class LuceneRDDPartition[T]
+private[searchrdd] class SearchRDDPartition[T]
 (private val iter: Iterator[T])(conf: Configuration)(
   path: String, status: Status, partitionIndex: Int = -1)
 (implicit docConversion: T => Document,
@@ -156,7 +156,7 @@ private[searchrdd] class LuceneRDDPartition[T]
   }
 
   override def filter(pred: T => Boolean): AbstractLuceneRDDPartition[T] =
-    new LuceneRDDPartition(
+    new SearchRDDPartition(
       iterOriginal.filter(pred))(conf)(path, status)(docConversion, kTag)
 
   override def termQuery(fieldName: String, fieldText: String,
@@ -214,17 +214,17 @@ private[searchrdd] class LuceneRDDPartition[T]
   }
 }
 
-object  LuceneRDDPartition {
+object  SearchRDDPartition {
   def apply[T: ClassTag]
       (iter: Iterator[T], conf: Configuration, path: String,
        status: Status)(
-      implicit docConversion: T => Document): LuceneRDDPartition[T] = {
-    new LuceneRDDPartition[T](iter)(conf)(path, status)(docConversion, classTag[T])
+      implicit docConversion: T => Document): SearchRDDPartition[T] = {
+    new SearchRDDPartition[T](iter)(conf)(path, status)(docConversion, classTag[T])
   }
   def apply
   (indexColumns: Seq[String], quickWay: Boolean,
    partitionIndex: Int, iter: Iterator[Row], conf: Configuration,
-   path: String, status: Status): LuceneRDDPartition[Row] = {
+   path: String, status: Status): SearchRDDPartition[Row] = {
     implicit val columns = indexColumns.foldLeft(Set[String]())((set, column) => set + column)
     val Stored = Field.Store.YES
     /**
@@ -306,7 +306,7 @@ object  LuceneRDDPartition {
       // doc.add(new IntField("partitionIndex", partitionIndex, AllFields.notIndex_intFieldType))
       doc
     }
-    new LuceneRDDPartition[Row](iter)(
+    new SearchRDDPartition[Row](iter)(
       conf)(path, status, partitionIndex)(docConversion, classTag[Row])
   }
 }
