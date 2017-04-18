@@ -16,7 +16,7 @@
  */
 package org.apache.spark.sql.execution.datasources.index.searchrdd.spatial.shape.partition
 
-import org.apache.spark.sql.execution.datasources.index.searchrdd.response.LuceneRDDResponsePartition
+import org.apache.spark.sql.execution.datasources.index.searchrdd.response.SearchRDDResponsePartition
 import org.apache.spark.sql.execution.datasources.index.searchrdd.spatial.shape.ShapeLuceneRDD.PointType
 
 import scala.reflect.ClassTag
@@ -44,7 +44,7 @@ private[shape] abstract class AbstractShapeLuceneRDDPartition[K, V] extends Seri
    * @return
    */
   def knnSearch(point: PointType, defaultField: String,
-        k: Int, searchString: String): LuceneRDDResponsePartition
+        k: Int, searchString: String): SearchRDDResponsePartition
 
   /**
    * Search for points within a circle
@@ -55,7 +55,7 @@ private[shape] abstract class AbstractShapeLuceneRDDPartition[K, V] extends Seri
    * @return
    */
   def circleSearch(center: PointType, radius: Double, k: Int, operationName: String)
-  : LuceneRDDResponsePartition
+  : SearchRDDResponsePartition
 
   /**
    * Spatial search with arbitrary shape
@@ -66,7 +66,7 @@ private[shape] abstract class AbstractShapeLuceneRDDPartition[K, V] extends Seri
    * @return
    */
   def spatialSearch(shapeAsString: String, k: Int, operationName: String)
-  : LuceneRDDResponsePartition
+  : SearchRDDResponsePartition
 
   /**
    * Spatial search with point
@@ -77,7 +77,7 @@ private[shape] abstract class AbstractShapeLuceneRDDPartition[K, V] extends Seri
    * @return
    */
   def spatialSearch(point: PointType, k: Int, operationName: String)
-  : LuceneRDDResponsePartition
+  : SearchRDDResponsePartition
 
   /**
    * Bounding box search with point and radius
@@ -89,7 +89,7 @@ private[shape] abstract class AbstractShapeLuceneRDDPartition[K, V] extends Seri
    * @return
    */
   def bboxSearch(center: PointType, radius: Double, k: Int, operationName: String)
-  : LuceneRDDResponsePartition
+  : SearchRDDResponsePartition
 
   /**
    * Bounding box search with lower left and upper right corners
@@ -101,7 +101,7 @@ private[shape] abstract class AbstractShapeLuceneRDDPartition[K, V] extends Seri
    * @return
    */
   def bboxSearch(lowerLeft: PointType, upperRight: PointType, k: Int, operationName: String)
-  : LuceneRDDResponsePartition
+  : SearchRDDResponsePartition
 
   /**
    * Restricts the entries to those satisfying a predicate

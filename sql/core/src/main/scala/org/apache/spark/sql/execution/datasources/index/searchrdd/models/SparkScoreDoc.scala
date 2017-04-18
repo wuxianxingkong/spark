@@ -34,6 +34,13 @@ object SparkScoreDoc extends Serializable {
     SparkScoreDoc(scoreDoc.score, scoreDoc.doc, scoreDoc.shardIndex,
       SparkDoc(indexSearcher.doc(scoreDoc.doc)))
   }
+  def apply(indexSearcher: IndexSearcher, scoreDoc: ScoreDoc,
+    requiredColumns: Array[String]): SparkScoreDoc = {
+    import scala.collection.JavaConverters._
+    val requiredColumnsSet = requiredColumns.toSet.asJava
+    SparkScoreDoc(scoreDoc.score, scoreDoc.doc, scoreDoc.shardIndex,
+      SparkDoc(indexSearcher.doc(scoreDoc.doc, requiredColumnsSet)))
+  }
 
   def apply(indexSearcher: IndexSearcher, scoreDoc: ScoreDoc, score: Float): SparkScoreDoc = {
     SparkScoreDoc(score, scoreDoc.doc, scoreDoc.shardIndex,

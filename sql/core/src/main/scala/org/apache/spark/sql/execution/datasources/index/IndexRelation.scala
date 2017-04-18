@@ -106,7 +106,7 @@ case class IndexRelation(
       case QueryParser(defaultFieldName, query, topK) =>
         globalTopK = topK
         SearchRDD(sparkSession, tableName).query(
-          defaultFieldName, query, Integer.valueOf(topK))
+          defaultFieldName, query, Integer.valueOf(topK), requiredColumns)
       case _ => throw new
           UnsupportedOperationException(s"Cannot support other filter: $this")
     }

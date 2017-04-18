@@ -19,7 +19,7 @@ package org.apache.spark.sql.execution.datasources.index.searchrdd.response
 import org.apache.spark.sql.execution.datasources.index.searchrdd.models.SparkScoreDoc
 
 
-case class LuceneRDDResponsePartition(results: Iterator[SparkScoreDoc])
+case class SearchRDDResponsePartition(results: Iterator[SparkScoreDoc])
   extends Iterable[SparkScoreDoc] {
   override def iterator(): Iterator[SparkScoreDoc] = results
 }

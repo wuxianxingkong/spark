@@ -23,7 +23,7 @@ import org.apache.spark.serializer.{KryoRegistrator, KryoSerializer}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.facets.FacetedSearchRDD
 import org.apache.spark.sql.execution.datasources.index.searchrdd.models.{SparkDoc, SparkFacetResult, SparkScoreDoc}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.SearchRDDPartition
-import org.apache.spark.sql.execution.datasources.index.searchrdd.response.{LuceneRDDResponse, LuceneRDDResponsePartition}
+import org.apache.spark.sql.execution.datasources.index.searchrdd.response.{SearchRDDResponse, SearchRDDResponsePartition}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.testing.{FavoriteCaseClass, Person}
 
 class SearchRDDKryoRegistrator extends KryoRegistrator {
@@ -59,8 +59,8 @@ class SearchRDDKryoRegistrator extends KryoRegistrator {
     kryo.register(classOf[Array[scala.collection.immutable.Map[_, _]]])
     kryo.register(classOf[SparkFacetResult])
     kryo.register(classOf[SparkScoreDoc])
-    kryo.register(classOf[LuceneRDDResponse])
-    kryo.register(classOf[LuceneRDDResponsePartition])
+    kryo.register(classOf[SearchRDDResponse])
+    kryo.register(classOf[SearchRDDResponsePartition])
     kryo.register(classOf[TopK[_]])
     kryo.register(classOf[FavoriteCaseClass]) /* For testing */
     kryo.register(classOf[Array[FavoriteCaseClass]]) /* For testing */

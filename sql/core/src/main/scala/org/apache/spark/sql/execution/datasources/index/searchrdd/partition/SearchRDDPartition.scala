@@ -34,7 +34,7 @@ import org.joda.time.DateTime
 import org.apache.spark.sql.execution.datasources.index.searchrdd.facets.FacetedSearchRDD
 import org.apache.spark.sql.execution.datasources.index.searchrdd.models.{SparkFacetResult, SparkScoreDoc}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.query.LuceneQueryHelpers
-import org.apache.spark.sql.execution.datasources.index.searchrdd.response.LuceneRDDResponsePartition
+import org.apache.spark.sql.execution.datasources.index.searchrdd.response.SearchRDDResponsePartition
 import org.apache.spark.sql.execution.datasources.index.searchrdd.store.{IndexWithTaxonomyWriter, Status}
 
 import scala.reflect.{ClassTag, _}
@@ -44,7 +44,7 @@ private[searchrdd] class SearchRDDPartition[T]
   path: String, status: Status, partitionIndex: Int = -1)
 (implicit docConversion: T => Document,
  override implicit val kTag: ClassTag[T])
-  extends AbstractLuceneRDDPartition[T]
+  extends AbstractSearchRDDPartition[T]
   with IndexWithTaxonomyWriter {
 
   logInfo(s"Instance(partition-${partitionIndex}) is created...")
@@ -144,64 +144,99 @@ private[searchrdd] class SearchRDDPartition[T]
   override def multiTermQuery(docMap: Map[String, String],
                               topK: Int,
                               booleanClause: BooleanClause.Occur = BooleanClause.Occur.MUST)
-  : LuceneRDDResponsePartition = {
+  : SearchRDDResponsePartition = {
    val results = LuceneQueryHelpers.multiTermQuery(indexSearcher, docMap, topK,
      booleanClause: BooleanClause.Occur)
 
-    LuceneRDDResponsePartition(results.toIterator)
+    SearchRDDResponsePartition(results.toIterator)
   }
 
   override def iterator: Iterator[T] = {
     iterOriginal
   }
 
-  override def filter(pred: T => Boolean): AbstractLuceneRDDPartition[T] =
+  override def filter(pred: T => Boolean): AbstractSearchRDDPartition[T] =
     new SearchRDDPartition(
       iterOriginal.filter(pred))(conf)(path, status)(docConversion, kTag)
 
   override def termQuery(fieldName: String, fieldText: String,
-                         topK: Int = 1): LuceneRDDResponsePartition = {
+                         topK: Int = 1): SearchRDDResponsePartition = {
     val results = LuceneQueryHelpers.termQuery(indexSearcher, fieldName, fieldText, topK)
 
-    LuceneRDDResponsePartition(results.toIterator)
+    SearchRDDResponsePartition(results.toIterator)
   }
+  override def termQuery(requiredColumns: Array[String], fieldName: String,
+                         fieldText: String,
+    topK: Int): SearchRDDResponsePartition = {
+    val results = LuceneQueryHelpers.termQuery(indexSearcher, fieldName,
+      fieldText, topK, requiredColumns)
 
+    SearchRDDResponsePartition(results.toIterator)
+  }
   override def query(defaultField: String, searchString: String,
-                     topK: Int): LuceneRDDResponsePartition = {
+                     topK: Int): SearchRDDResponsePartition = {
     val results = LuceneQueryHelpers.searchParser(indexSearcher,
       defaultField, searchString, topK)(Analyzer)
 
-    LuceneRDDResponsePartition(results.toIterator)
+    SearchRDDResponsePartition(results.toIterator)
+  }
+  override def query(defaultField: String, searchString: String,
+                     requiredColumns: Array[String],
+                     topK: Int): SearchRDDResponsePartition = {
+    val results = LuceneQueryHelpers.searchParser(indexSearcher,
+      defaultField, searchString, topK, requiredColumns)(Analyzer)
+
+    SearchRDDResponsePartition(results.toIterator)
   }
 
   override def queries(defaultField: String, searchStrings: Iterable[String],
-                     topK: Int): Iterable[(String, LuceneRDDResponsePartition)] = {
+                     topK: Int): Iterable[(String, SearchRDDResponsePartition)] = {
     searchStrings.map( searchString =>
       (searchString, query(defaultField, searchString, topK))
     )
   }
 
   override def prefixQuery(fieldName: String, fieldText: String,
-                           topK: Int): LuceneRDDResponsePartition = {
+                           topK: Int): SearchRDDResponsePartition = {
     val results = LuceneQueryHelpers.prefixQuery(indexSearcher, fieldName, fieldText, topK)
 
-    LuceneRDDResponsePartition(results.toIterator)
+    SearchRDDResponsePartition(results.toIterator)
+  }
+  override def prefixQuery(fieldName: String, fieldText: String,
+    requiredColumns: Array[String], topK: Int): SearchRDDResponsePartition = {
+    val results = LuceneQueryHelpers.prefixQuery(indexSearcher, fieldName,
+      fieldText, topK, requiredColumns)
+
+    SearchRDDResponsePartition(results.toIterator)
   }
 
   override def fuzzyQuery(fieldName: String, fieldText: String,
-                          maxEdits: Int, topK: Int): LuceneRDDResponsePartition = {
+                          maxEdits: Int, topK: Int): SearchRDDResponsePartition = {
     val results = LuceneQueryHelpers
       .fuzzyQuery(indexSearcher, fieldName, fieldText, maxEdits, topK)
 
-    LuceneRDDResponsePartition(results.toIterator)
+    SearchRDDResponsePartition(results.toIterator)
   }
+  override def fuzzyQuery(fieldName: String, fieldText: String,
+    maxEdits: Int, requiredColumns: Array[String], topK: Int): SearchRDDResponsePartition = {
+    val results = LuceneQueryHelpers
+      .fuzzyQuery(indexSearcher, fieldName, fieldText, maxEdits, topK, requiredColumns)
 
+    SearchRDDResponsePartition(results.toIterator)
+  }
   override def phraseQuery(fieldName: String, fieldText: String,
-                           topK: Int): LuceneRDDResponsePartition = {
+                           topK: Int): SearchRDDResponsePartition = {
     val results = LuceneQueryHelpers
       .phraseQuery(indexSearcher, fieldName, fieldText, topK)(Analyzer)
 
-    LuceneRDDResponsePartition(results.toIterator)
+    SearchRDDResponsePartition(results.toIterator)
+  }
+  override def phraseQuery(fieldName: String, fieldText: String,
+    requiredColumns: Array[String], topK: Int): SearchRDDResponsePartition = {
+    val results = LuceneQueryHelpers
+      .phraseQuery(indexSearcher, fieldName, fieldText, topK)(Analyzer)
+
+    SearchRDDResponsePartition(results.toIterator)
   }
 
   override def facetQuery(searchString: String,

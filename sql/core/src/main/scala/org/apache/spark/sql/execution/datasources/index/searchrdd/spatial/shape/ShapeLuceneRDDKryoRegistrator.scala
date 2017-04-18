@@ -21,7 +21,7 @@ import com.twitter.chill._
 import org.apache.spark.SparkConf
 import org.apache.spark.serializer.{KryoRegistrator, KryoSerializer}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.models.{SparkDoc, SparkFacetResult, SparkScoreDoc}
-import org.apache.spark.sql.execution.datasources.index.searchrdd.response.{LuceneRDDResponse, LuceneRDDResponsePartition}
+import org.apache.spark.sql.execution.datasources.index.searchrdd.response.{SearchRDDResponse, SearchRDDResponsePartition}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.spatial.shape.partition.ShapeLuceneRDDPartition
 
 
@@ -31,8 +31,8 @@ class ShapeLuceneRDDKryoRegistrator extends KryoRegistrator {
     kryo.register(classOf[ShapeLuceneRDDPartition[_, _]])
     kryo.register(classOf[SparkDoc])
     kryo.register(classOf[SparkFacetResult])
-    kryo.register(classOf[LuceneRDDResponse])
-    kryo.register(classOf[LuceneRDDResponsePartition])
+    kryo.register(classOf[SearchRDDResponse])
+    kryo.register(classOf[SearchRDDResponsePartition])
     kryo.register(classOf[SparkScoreDoc])
     kryo.register(classOf[TopK[_]])
     ()

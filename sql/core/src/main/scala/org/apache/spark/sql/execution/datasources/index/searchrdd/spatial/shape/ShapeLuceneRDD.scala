@@ -27,7 +27,7 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.config.LuceneRDDConfigurable
 import org.apache.spark.sql.execution.datasources.index.searchrdd.models.SparkScoreDoc
 import org.apache.spark.sql.execution.datasources.index.searchrdd.query.LuceneQueryHelpers
-import org.apache.spark.sql.execution.datasources.index.searchrdd.response.{LuceneRDDResponse, LuceneRDDResponsePartition}
+import org.apache.spark.sql.execution.datasources.index.searchrdd.response.{SearchRDDResponse, SearchRDDResponsePartition}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.spatial.shape.ShapeLuceneRDD.PointType
 import org.apache.spark.sql.execution.datasources.index.searchrdd.spatial.shape.partition.{AbstractShapeLuceneRDDPartition, ShapeLuceneRDDPartition}
 
@@ -81,8 +81,8 @@ class ShapeLuceneRDD[K: ClassTag, V: ClassTag]
   setName("ShapeLuceneRDD")
 
   private def partitionMapper(f: AbstractShapeLuceneRDDPartition[K, V] =>
-    LuceneRDDResponsePartition): LuceneRDDResponse = {
-    new LuceneRDDResponse(partitionsRDD.map(f(_)), SparkScoreDoc.ascending)
+    SearchRDDResponsePartition): SearchRDDResponse = {
+    new SearchRDDResponse(partitionsRDD.map(f(_)), SparkScoreDoc.ascending)
   }
 
   private def linker[T: ClassTag](that: RDD[T], pointFunctor: T => PointType,
@@ -211,7 +211,7 @@ class ShapeLuceneRDD[K: ClassTag, V: ClassTag]
    */
   def knnSearch(queryPoint: PointType, k: Int, defaultField: String,
                 searchString: String = LuceneQueryHelpers.MatchAllDocsString)
-  : LuceneRDDResponse = {
+  : SearchRDDResponse = {
     logInfo(s"Knn search with query ${queryPoint} and search string ${searchString}")
     partitionMapper(_.knnSearch(queryPoint, defaultField, k, searchString))
   }
@@ -225,7 +225,7 @@ class ShapeLuceneRDD[K: ClassTag, V: ClassTag]
    * @return
    */
   def circleSearch(center: PointType, radius: Double, k: Int)
-  : LuceneRDDResponse = {
+  : SearchRDDResponse = {
     logInfo(s"Circle search with center ${center} and radius ${radius}")
     // Points can only intersect
     partitionMapper(_.circleSearch(center, radius, k,
@@ -242,7 +242,7 @@ class ShapeLuceneRDD[K: ClassTag, V: ClassTag]
    */
   def spatialSearch(shapeWKT: String, k: Int,
                     operationName: String = SpatialOperation.Intersects.getName)
-  : LuceneRDDResponse = {
+  : SearchRDDResponse = {
     logInfo(s"Spatial search with shape ${shapeWKT} and operation ${operationName}")
     partitionMapper(_.spatialSearch(shapeWKT, k, operationName))
   }
@@ -257,7 +257,7 @@ class ShapeLuceneRDD[K: ClassTag, V: ClassTag]
    */
   def spatialSearch(point: PointType, k: Int,
                     operationName: String)
-  : LuceneRDDResponse = {
+  : SearchRDDResponse = {
     logInfo(s"Spatial search with point ${point} and operation ${operationName}")
     partitionMapper(_.spatialSearch(point, k, operationName))
   }
@@ -273,7 +273,7 @@ class ShapeLuceneRDD[K: ClassTag, V: ClassTag]
    */
   def bboxSearch(center: PointType, radius: Double, k: Int,
                     operationName: String = SpatialOperation.Intersects.getName)
-  : LuceneRDDResponse = {
+  : SearchRDDResponse = {
     logInfo(s"Bounding box with center ${center}, radius ${radius}, k = ${k}")
     partitionMapper(_.bboxSearch(center, radius, k, operationName))
   }
@@ -288,7 +288,7 @@ class ShapeLuceneRDD[K: ClassTag, V: ClassTag]
    */
   def bboxSearch(lowerLeft: PointType, upperRight: PointType, k: Int,
                  operationName: String)
-  : LuceneRDDResponse = {
+  : SearchRDDResponse = {
     logInfo(s"Bounding box with lower left ${lowerLeft}, upper right ${upperRight} and k = ${k}")
     partitionMapper(_.bboxSearch(lowerLeft, upperRight, k, operationName))
   }

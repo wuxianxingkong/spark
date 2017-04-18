@@ -23,14 +23,14 @@ import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
 import org.apache.lucene.document._
 import org.apache.lucene.index.DirectoryReader
 import org.apache.spark.sql.execution.datasources.index.searchrdd.config.LuceneRDDConfigurable
-import org.apache.spark.sql.execution.datasources.index.searchrdd.response.{LuceneRDDResponse, LuceneRDDResponsePartition}
+import org.apache.spark.sql.execution.datasources.index.searchrdd.response.{SearchRDDResponse, SearchRDDResponsePartition}
 import org.apache.spark.rdd.RDD
 import org.apache.lucene.search.{IndexSearcher, MatchAllDocsQuery, Query}
 import org.apache.solr.store.hdfs.HdfsDirectory
 import org.apache.spark._
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.{AbstractLuceneRDDPartition, SearchRDDPartition}
+import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.{AbstractSearchRDDPartition, SearchRDDPartition}
 import org.apache.spark.sql.execution.datasources.index.searchrdd.models.SparkScoreDoc
 import org.apache.spark.sql.execution.datasources.index.searchrdd.store.Status
 import org.apache.spark.sql.types._
@@ -44,7 +44,7 @@ import scala.reflect.ClassTag
  * @tparam T
  */
 class SearchRDD[T: ClassTag](
-      protected val partitionsRDD: RDD[AbstractLuceneRDDPartition[T]])
+      protected val partitionsRDD: RDD[AbstractSearchRDDPartition[T]])
       extends RDD[T](partitionsRDD.sparkContext,
       if ( partitionsRDD ==null ) Nil else List(new OneToOneDependency(partitionsRDD)))
   with LuceneRDDConfigurable {
@@ -72,7 +72,7 @@ class SearchRDD[T: ClassTag](
     this
   }
 
-  /** Set the name for the RDD; By default set to "LuceneRDD" */
+  /** Set the name for the RDD; By default set to "SearchRDD" */
   override def setName(_name: String): this.type = {
     if (partitionsRDD.name != null) {
       partitionsRDD.setName(partitionsRDD.name + ", " + _name)
@@ -82,7 +82,7 @@ class SearchRDD[T: ClassTag](
     this
   }
 
-  setName("LuceneRDD")
+  setName("SearchRDD")
 
   /**
    * Maps partition results
@@ -91,9 +91,9 @@ class SearchRDD[T: ClassTag](
    * @param k number of documents to return
    * @return
    */
-  protected def partitionMapper(f: AbstractLuceneRDDPartition[T] => LuceneRDDResponsePartition,
-                                k: Int): LuceneRDDResponse = {
-    new LuceneRDDResponse(partitionsRDD.map(f), SparkScoreDoc.descending)
+  protected def partitionMapper(f: AbstractSearchRDDPartition[T] => SearchRDDResponsePartition,
+                                k: Int): SearchRDDResponse = {
+    new SearchRDDResponse(partitionsRDD.map(f), SparkScoreDoc.descending)
   }
 
 
@@ -125,10 +125,21 @@ class SearchRDD[T: ClassTag](
    * @return
    */
   def query(defaultField: String, searchString: String,
-            topK: Int = DefaultTopK): LuceneRDDResponse = {
+            topK: Int = DefaultTopK): SearchRDDResponse = {
     partitionMapper(_.query(defaultField, searchString, topK), topK)
   }
 
+  /**
+    * Generic query using Lucene's query parser
+    * @param defaultField  Default query field
+    * @param searchString  Query String
+    * @param topK
+    * @return
+    */
+  def query(defaultField: String, searchString: String,
+            topK: Int, requiredColumns: Array[String]): SearchRDDResponse = {
+    partitionMapper(_.query(defaultField, searchString, topK), topK)
+  }
 
   /**
    * Entity linkage via Lucene query over all elements of an RDD.
@@ -216,7 +227,7 @@ class SearchRDD[T: ClassTag](
    * @return
    */
   def termQuery(fieldName: String, query: String,
-                topK: Int = DefaultTopK): LuceneRDDResponse = {
+                topK: Int = DefaultTopK): SearchRDDResponse = {
     logInfo(s"Term search on field ${fieldName} with query ${query}")
     partitionMapper(_.termQuery(fieldName, query, topK), topK)
   }
@@ -230,7 +241,7 @@ class SearchRDD[T: ClassTag](
    * @return
    */
   def prefixQuery(fieldName: String, query: String,
-                  topK: Int = DefaultTopK): LuceneRDDResponse = {
+                  topK: Int = DefaultTopK): SearchRDDResponse = {
     logInfo(s"Prefix search on field ${fieldName} with query ${query}")
     partitionMapper(_.prefixQuery(fieldName, query, topK), topK)
   }
@@ -245,7 +256,7 @@ class SearchRDD[T: ClassTag](
    * @return
    */
   def fuzzyQuery(fieldName: String, query: String,
-                 maxEdits: Int, topK: Int = DefaultTopK): LuceneRDDResponse = {
+                 maxEdits: Int, topK: Int = DefaultTopK): SearchRDDResponse = {
     logInfo(s"Fuzzy search on field ${fieldName} with query ${query}")
     partitionMapper(_.fuzzyQuery(fieldName, query, maxEdits, topK), topK)
   }
@@ -259,7 +270,7 @@ class SearchRDD[T: ClassTag](
    * @return
    */
   def phraseQuery(fieldName: String, query: String,
-                  topK: Int = DefaultTopK): LuceneRDDResponse = {
+                  topK: Int = DefaultTopK): SearchRDDResponse = {
     logInfo(s"Phrase search on field ${fieldName} with query ${query}")
     partitionMapper(_.phraseQuery(fieldName, query, topK), topK)
   }
@@ -271,7 +282,7 @@ class SearchRDD[T: ClassTag](
 
   /** RDD compute method. */
   override def compute(part: Partition, context: TaskContext): Iterator[T] = {
-    firstParent[AbstractLuceneRDDPartition[T]].iterator(part, context).next.iterator
+    firstParent[AbstractSearchRDDPartition[T]].iterator(part, context).next.iterator
   }
 
   override def filter(pred: T => Boolean): SearchRDD[T] = {
@@ -314,7 +325,7 @@ object SearchRDD{
     if(deleteDf.exists(deletePath)) {
       deleteDf.delete(deletePath, true)
     }
-    val partitions = elems.mapPartitions[AbstractLuceneRDDPartition[T]](
+    val partitions = elems.mapPartitions[AbstractSearchRDDPartition[T]](
       iter => Iterator(SearchRDDPartition(iter, serialConf, tableName, Status.Rewrite)),
       preservesPartitioning = true)
     new SearchRDD[T](partitions)
@@ -338,7 +349,7 @@ object SearchRDD{
     if(deleteDf.exists(deletePath)) {
       deleteDf.delete(deletePath, true)
     }
-    val partitions = elems.mapPartitionsWithIndex[AbstractLuceneRDDPartition[Row]](
+    val partitions = elems.mapPartitionsWithIndex[AbstractSearchRDDPartition[Row]](
       (index, iterator) =>
         Iterator(SearchRDDPartition(indexColumns, quickWay: Boolean, index, iterator, serialConf,
         tableName, Status.Rewrite)),
@@ -374,7 +385,7 @@ object SearchRDD{
       serialConf.setBoolean("fs.hdfs.impl.disable.cache", true);
       val rdd = sparkSession.sparkContext.parallelize[String](
         indexPaths.toList.asInstanceOf[Seq[String]], indexPaths.toSeq.size)
-      val partitions = rdd.mapPartitionsWithIndex[AbstractLuceneRDDPartition[String]](
+      val partitions = rdd.mapPartitionsWithIndex[AbstractSearchRDDPartition[String]](
         (index, iterator) => {
           val temp = iterator.take(1).next().asInstanceOf[String]
           Iterator(SearchRDDPartition(iterator, serialConf, temp, Status.Exists))},

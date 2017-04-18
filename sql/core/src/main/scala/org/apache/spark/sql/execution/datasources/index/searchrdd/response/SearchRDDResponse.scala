@@ -26,8 +26,8 @@ import org.apache.spark.sql.execution.datasources.index.searchrdd.models.SparkSc
 /**
  * LuceneRDD response
  */
-private[searchrdd] class LuceneRDDResponse
-  (protected val partitionsRDD: RDD[LuceneRDDResponsePartition],
+private[searchrdd] class SearchRDDResponse
+  (protected val partitionsRDD: RDD[SearchRDDResponsePartition],
    protected val ordering: Ordering[SparkScoreDoc])
   extends RDD[SparkScoreDoc](partitionsRDD.context,
     List(new OneToOneDependency(partitionsRDD))) {
@@ -37,7 +37,7 @@ private[searchrdd] class LuceneRDDResponse
   : Iterator[SparkScoreDoc] = {
     // Every partition has just one LuceneRDDResponsePartition data structure
     // so, we need to use next() to extract the first(the only) one.
-    firstParent[LuceneRDDResponsePartition].iterator(split, context).next().iterator()
+    firstParent[SearchRDDResponsePartition].iterator(split, context).next().iterator()
   }
 
   override protected def getPartitions: Array[Partition] = partitionsRDD.partitions

@@ -19,7 +19,7 @@ package org.apache.spark.sql.execution.datasources.index.searchrdd.partition
 
 import org.apache.lucene.search.BooleanClause
 import org.apache.spark.sql.execution.datasources.index.searchrdd.models.{SparkFacetResult, SparkScoreDoc}
-import org.apache.spark.sql.execution.datasources.index.searchrdd.response.LuceneRDDResponsePartition
+import org.apache.spark.sql.execution.datasources.index.searchrdd.response.SearchRDDResponsePartition
 
 import scala.reflect.ClassTag
 
@@ -28,7 +28,7 @@ import scala.reflect.ClassTag
  *
  * @tparam T the type associated with each entry in the set.
  */
-private[searchrdd] abstract class AbstractLuceneRDDPartition[T] extends Serializable
+private[searchrdd] abstract class AbstractSearchRDDPartition[T] extends Serializable
   with AutoCloseable {
 
   protected implicit def kTag: ClassTag[T]
@@ -51,7 +51,7 @@ private[searchrdd] abstract class AbstractLuceneRDDPartition[T] extends Serializ
   def multiTermQuery(docMap: Map[String, String],
                      topK: Int,
                      boolClause: BooleanClause.Occur = BooleanClause.Occur.MUST)
-  : LuceneRDDResponsePartition
+  : SearchRDDResponsePartition
 
 
   /**
@@ -61,7 +61,16 @@ private[searchrdd] abstract class AbstractLuceneRDDPartition[T] extends Serializ
    * @param topK Number of documents to return
    * @return
    */
-  def query(defaultField: String, searchString: String, topK: Int): LuceneRDDResponsePartition
+  def query(defaultField: String, searchString: String, topK: Int): SearchRDDResponsePartition
+  /**
+    * Generic Lucene Query using QueryParser
+    * @param defaultField Default query field
+    * @param searchString Lucene query string, i.e., textField:hello*
+    * @param topK Number of documents to return
+    * @return
+    */
+  def query(defaultField: String, searchString: String,
+            requiredColumns: Array[String], topK: Int): SearchRDDResponsePartition
 
   /**
    * Multiple generic Lucene Queries using QueryParser
@@ -71,7 +80,7 @@ private[searchrdd] abstract class AbstractLuceneRDDPartition[T] extends Serializ
    * @return
    */
   def queries(defaultField: String, searchString: Iterable[String], topK: Int)
-  : Iterable[(String, LuceneRDDResponsePartition)]
+  : Iterable[(String, SearchRDDResponsePartition)]
 
   /**
    * Generic Lucene faceted Query using QueryParser
@@ -89,7 +98,10 @@ private[searchrdd] abstract class AbstractLuceneRDDPartition[T] extends Serializ
    * @param topK Number of documents to return
    * @return
    */
-  def termQuery(fieldName: String, query: String, topK: Int): LuceneRDDResponsePartition
+  def termQuery(fieldName: String, query: String, topK: Int): SearchRDDResponsePartition
+  def termQuery(requiredColumns: Array[String], fieldName: String, query: String,
+                topK: Int
+    ): SearchRDDResponsePartition
 
   /**
    * Prefix Query
@@ -98,7 +110,10 @@ private[searchrdd] abstract class AbstractLuceneRDDPartition[T] extends Serializ
    * @param topK Number of documents to return
    * @return
    */
-  def prefixQuery(fieldName: String, query: String, topK: Int): LuceneRDDResponsePartition
+  def prefixQuery(fieldName: String, query: String, topK: Int): SearchRDDResponsePartition
+  def prefixQuery(fieldName: String, query: String, requiredColumns: Array[String],
+                  topK: Int
+    ): SearchRDDResponsePartition
 
   /**
    * Fuzzy Query
@@ -109,7 +124,10 @@ private[searchrdd] abstract class AbstractLuceneRDDPartition[T] extends Serializ
    * @return
    */
   def fuzzyQuery(fieldName: String, query: String,
-                 maxEdits: Int, topK: Int): LuceneRDDResponsePartition
+                 maxEdits: Int, topK: Int): SearchRDDResponsePartition
+  def fuzzyQuery(fieldName: String, query: String,
+    maxEdits: Int, requiredColumns: Array[String],
+                 topK: Int): SearchRDDResponsePartition
 
   /**
    * PhraseQuery
@@ -118,12 +136,14 @@ private[searchrdd] abstract class AbstractLuceneRDDPartition[T] extends Serializ
    * @param topK Number of documents to return
    * @return
    */
-  def phraseQuery(fieldName: String, query: String, topK: Int): LuceneRDDResponsePartition
+  def phraseQuery(fieldName: String, query: String, topK: Int): SearchRDDResponsePartition
+  def phraseQuery(fieldName: String, query: String, requiredColumns: Array[String],
+                  topK: Int): SearchRDDResponsePartition
 
   /**
    * Restricts the entries to those satisfying a predicate
    * @param pred Predicate to filter on
    * @return
    */
-  def filter(pred: T => Boolean): AbstractLuceneRDDPartition[T]
+  def filter(pred: T => Boolean): AbstractSearchRDDPartition[T]
 }

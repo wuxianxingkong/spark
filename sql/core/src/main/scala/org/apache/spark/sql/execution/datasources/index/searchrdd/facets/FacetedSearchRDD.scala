@@ -24,8 +24,8 @@ import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.execution.datasources.index.searchrdd.SearchRDD
 import org.apache.spark.sql.execution.datasources.index.searchrdd.aggregate.SparkFacetResultMonoid
 import org.apache.spark.sql.execution.datasources.index.searchrdd.models.SparkFacetResult
-import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.{AbstractLuceneRDDPartition, SearchRDDPartition}
-import org.apache.spark.sql.execution.datasources.index.searchrdd.response.LuceneRDDResponse
+import org.apache.spark.sql.execution.datasources.index.searchrdd.partition.{AbstractSearchRDDPartition, SearchRDDPartition}
+import org.apache.spark.sql.execution.datasources.index.searchrdd.response.SearchRDDResponse
 import org.apache.spark.sql.execution.datasources.index.searchrdd.store.Status
 
 import scala.reflect.ClassTag
@@ -34,7 +34,7 @@ import scala.reflect.ClassTag
  * LuceneRDD with faceted functionality
  */
 class FacetedSearchRDD[T: ClassTag]
-  (override protected val partitionsRDD: RDD[AbstractLuceneRDDPartition[T]])
+  (override protected val partitionsRDD: RDD[AbstractSearchRDDPartition[T]])
   extends SearchRDD[T](partitionsRDD) {
 
   setName("FacetedLuceneRDD")
@@ -61,7 +61,7 @@ class FacetedSearchRDD[T: ClassTag]
    * @param f a function that computes faceted search results per partition
    * @return faceted search results
    */
-  private def facetResultsAggregator(f: AbstractLuceneRDDPartition[T] => SparkFacetResult)
+  private def facetResultsAggregator(f: AbstractSearchRDDPartition[T] => SparkFacetResult)
   : SparkFacetResult = {
     partitionsRDD.map(f(_)).reduce(SparkFacetResultMonoid.plus)
   }
@@ -79,7 +79,7 @@ class FacetedSearchRDD[T: ClassTag]
                  facetField: String,
                  topK: Int = DefaultTopK,
                  facetNum: Int = DefaultFacetNum
-                ): (LuceneRDDResponse, SparkFacetResult) = {
+                ): (SearchRDDResponse, SparkFacetResult) = {
     val aggrTopDocs = partitionMapper(_.query(defaultField, searchString, topK), topK)
     val aggrFacets = facetResultsAggregator(_.facetQuery(searchString, facetField, facetNum))
     (aggrTopDocs, aggrFacets)
@@ -98,7 +98,7 @@ class FacetedSearchRDD[T: ClassTag]
                    facetFields: Seq[String],
                    topK: Int = DefaultTopK,
                    facetNum: Int = DefaultFacetNum)
-  : (LuceneRDDResponse, Map[String, SparkFacetResult]) = {
+  : (SearchRDDResponse, Map[String, SparkFacetResult]) = {
     logInfo(s"Faceted query on facet fields ${facetFields.mkString(",")}...")
     val aggrTopDocs = partitionMapper(_.query(defaultField, searchString, topK), topK)
     val aggrFacets = facetFields.map { case facetField =>
@@ -125,7 +125,7 @@ object FacetedSearchRDD {
    */
   def apply[T : ClassTag](elems: RDD[T])
                          (implicit conv: T => Document): FacetedSearchRDD[T] = {
-    val partitions = elems.mapPartitions[AbstractLuceneRDDPartition[T]](
+    val partitions = elems.mapPartitions[AbstractSearchRDDPartition[T]](
       iter => Iterator(SearchRDDPartition(iter, null, "", Status.Rewrite)),
       preservesPartitioning = true)
     new FacetedSearchRDD[T](partitions)
